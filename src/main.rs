@@ -2,9 +2,16 @@ use raylib::prelude::*;
 use std::time;
 
 pub mod simulation;
-//use crate::simulation::simulator;
+use simulation::simulator::simulator::SimArea;
+use simulation::simulator::simulator::CrowdSim;
 
 fn main() {
+    let simualted_area_1 = SimArea::new();
+    let mut crowd_simulation = CrowdSim::new(simualted_area_1);
+    
+    crowd_simulation.simulate_timestep(0.1);
+    
+    /*
     let (mut rl, thread) = raylib::init()
         .size(640, 480)
         .resizable() // If the window is not resizable it will float by default
@@ -31,6 +38,8 @@ fn main() {
         
         frame_count += 1;
     }
+    
+    // */
     
 }
 
