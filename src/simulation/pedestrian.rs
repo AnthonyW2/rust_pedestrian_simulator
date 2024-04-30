@@ -1,49 +1,49 @@
 pub mod pedestrian {
     
     use std::f64::consts::TAU;
-
+    
+    use std::sync::Arc;
+    
     use crate::simulation::simulator::simulator::SimArea;
     
     // The radius of a pedestrian, in metres
-    const PEDESTRIAN_RADIUS: f64 = 0.4;
+    pub const PEDESTRIAN_RADIUS: f64 = 2.0;
     
-    const ETIQUETTE_LEFT_BIAS: usize = 0;
-    const ETIQUETTE_RIGHT_BIAS: usize = 1;
-    const ETIQUETTE_RANDOM: usize = 2;
+    // Some constants that denote a particular behaviour
+    pub const ETIQUETTE_LEFT_BIAS: usize = 0;
+    pub const ETIQUETTE_RIGHT_BIAS: usize = 1;
+    pub const ETIQUETTE_RANDOM: usize = 2;
     
-    pub struct Walker<'a> {
+    pub struct Walker {
         /// Absolute x-coordinate the pedestrian, in metres.
-        x: f64,
+        pub x: f64,
         /// Absolute y-coordinate the pedestrian
-        y: f64,
+        pub y: f64,
+        /// Instantaneous direction of travel, between 0 and 1, where 0 is east and the angle increases counterclockwise.
+        pub facing_direction: f64,
+        
         /// Preferred walking speed, in m/s.
         target_speed: f64,
         /// Instantaneous walking speed, in m/s.
         inst_speed: f64,
-        /// Instantaneous direction of travel, between 0 and 1, where 0 is east and the angle increases counterclockwise.
-        facing_direction: f64,
         
         /// The 2D environment that the pedestrian is within
-        environment: &'a SimArea,
+        environment: Arc<SimArea>,
         /// The ID of the target location that the pedestrian walks towards
         target_location: usize
     }
     
-    //pub struct Behaviour {
-    //    
-    //}
-    
-    impl Walker<'_> {
+    impl Walker {
         /// Create a new Walker object.
         /// 
         /// * `area` - A `SimArea` object describing the space for the simulation to be set in.
-        pub fn new(environment: &'static SimArea, group: usize, start: usize, end: usize, target_speed: f64) -> Walker<'static> {
+        pub fn new(environment: Arc<SimArea>, group: usize, start: usize, end: usize, target_speed: f64) -> Walker {
             Walker {
                 x: environment.start_positions[group][start].0,
                 y: environment.start_positions[group][start].1,
+                facing_direction: 0.0,
                 target_speed,
                 inst_speed: 0.0,
-                facing_direction: 0.0,
                 environment,
                 target_location: end
             }
@@ -57,9 +57,10 @@ pub mod pedestrian {
             
             self.apply_decisions();
             
-            //self.x += self.inst_speed * cos(self.direction_angle * TAU);
-            self.x += self.inst_speed;
-            self.y += self.inst_speed;
+            self.x += self.inst_speed * (self.facing_direction * TAU).cos();
+            self.y += self.inst_speed * (self.facing_direction * TAU).sin();
+            
+            self.resolve_wall_collisions();
             
         }
         
@@ -77,6 +78,12 @@ pub mod pedestrian {
         
         /// Check all walls in the relevant environment and resolve any collisions.
         pub fn resolve_wall_collisions(&mut self) {
+            
+            for wall in &self.environment.boundaries {
+                let nudge = wall.get_walker_collision_vector(self);
+                self.x += nudge.0;
+                self.y += nudge.1;
+            }
             
         }
         
