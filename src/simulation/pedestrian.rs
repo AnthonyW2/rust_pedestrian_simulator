@@ -17,17 +17,16 @@ pub mod pedestrian {
     /// The radius of a pedestrian's body, in metres
     const PEDESTRIAN_RADIUS: f64 = 0.4;
     
-    /// The radius of a pedestrian's personal space, in metres
-    const PEDESTRIAN_SPACE_RADIUS: f64 = 0.6;
-    
-    /// The intensity of repulsion between pedestrians within the personal space radius (acceleration, m⋅s^-2)
-    //const PEDESTRIAN_REPULSION: f64 = 0.1;
+    /// The distance a pedestrian looks ahead for obstacles, in metres
+    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 1.0;
+    /// The distance a pedestrian looks ahead for obstacles, in metres
+    const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 0.8;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
     const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
     
     /// The intensity of repulsion from a wall within the personal space radius, in radians per second
-    const WALL_DIRACTION_REPULSION: f64 = 0.1;
+    const WALL_DIRECTION_REPULSION: f64 = 0.1;
     
     /// Intensity of random noise added to pedestrian speed
     const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.6;
@@ -46,7 +45,7 @@ pub mod pedestrian {
         pub x: f64,
         /// Absolute y-coordinate the pedestrian
         pub y: f64,
-        /// Instantaneous direction of travel, in radians (between 0 and 2π).
+        /// Instantaneous direction of travel, in radians (between 0 and 2π). Note: all angles increase clockwise because the y-axis increase downward.
         pub facing_direction: f64,
         
         /// Preferred walking speed, in m/s.
@@ -113,32 +112,75 @@ pub mod pedestrian {
             self.facing_direction = nudge_angle(self.facing_direction, target_angle, PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale);
             
             
-            
-            // Apply general behavioural rules and etiquette rules
-            self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);
+            self.react_to_neighbours(other_pedestrians_before, other_pedestrians_after);
             
             self.apply_noise(time_scale);
+            
             
             // Apply velocity to change position
             self.x += self.inst_speed * self.facing_direction.cos() * time_scale;
             self.y += self.inst_speed * self.facing_direction.sin() * time_scale;
             
-            self.resolve_wall_collisions();
+            self.resolve_wall_collisions(); // NOTE: this may need to be moved up
             
         }
         
-        /// Use the general behaviours and the specific etiquette behaviours to determine the changes to this pedestrian's speed and direction of travel.
-        fn apply_decisions(&mut self, wall_normals: Vec<(f64, (f64, f64))>, other_pedestrians_before: &[(f64, f64, f64)], other_pedestrians_after: &[(f64, f64, f64)]) {
+        /// React to neighbouring pedestrians, considering specific etiquette rules
+        fn react_to_neighbours(&mut self, other_pedestrians_before: &[(f64, f64, f64)], other_pedestrians_after: &[(f64, f64, f64)]) {
             
             // Iterate through all neighbouring pedestrians and check for front-on collisions and side collisions.
             
-            // Check yet-to-be-simulated pedestrians first
+            /*
+             * If a pedestrian in front is walking in the same direction: slow down, do not change direction.
+             * If a pedestrian in front is walking in the opposite direction:
+             * * Slow down, and:
+             * * If this pedestrian is left- or right-biased, turn left or right respectively.
+             * * Otherwise choose the direction away from the opposing pedestrian.
+             * If a pedestrian is to the left or right: angle slightly away from them.
+             */
+            
+            // Check yet-to-be-simulated pedestrineighboursans first
+            for (n_dir, n_x, n_y) in other_pedestrians_after {
+                let dist = ((self.x - n_x)*(self.x - n_x) + (self.y - n_y)*(self.y - n_y)).sqrt();
+                
+                // The direction the neighbour is in
+                let abs_neighbour_angle = (self.y - n_y).atan2(self.x - n_x);
+                // The direction the neighbour is in, relative to the direction of travel of this pedestrian
+                let travel_rel_angle = (self.facing_direction - abs_neighbour_angle + TAU) % TAU;
+                
+                // Within view in front
+                if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS {
+                    
+                }
+                
+                // In front
+                if travel_rel_angle <= PI/4.0 || travel_rel_angle >= 7.0*PI/4.0 {
+                    
+                }
+                
+                // Right
+                if travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
+                    
+                }
+                
+                // Left
+                if travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
+                    
+                }
+                
+                let direction_difference = (self.facing_direction - n_dir + TAU) % TAU;
+                
+                if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
+                    // Oncoming
+                    
+                } else {
+                    // Moving same direction
+                    
+                }
+            }
             
             // Check already-simulated pedestrians next
             
-            
-            
-            // Iterate through all walls of self.environment and ensure that the pedestrian does not walk that way.
             
             
         }
@@ -243,7 +285,7 @@ pub mod pedestrian {
         //}
         
         // Return the new angle
-        return ((initial_angle - angle_diff*nudge_ratio) + TAU) % TAU;
+        return (initial_angle - angle_diff*nudge_ratio + TAU) % TAU;
     }
     
 }
