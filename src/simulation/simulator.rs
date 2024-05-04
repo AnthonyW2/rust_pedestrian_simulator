@@ -2,12 +2,14 @@ pub mod simulator {
     
     use std::sync::Arc;
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
+    use rand::{thread_rng, seq::SliceRandom};
+    
     use crate::simulation::pedestrian::pedestrian;
     //use crate::simulation::pedestrian::pedestrian::Walker;
     
     
     /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
-    pub const TARGET_LOCATION_RADIUS: f64 = 0.5;
+    pub const TARGET_LOCATION_RADIUS: f64 = 1.0;
     
     /// How many pixels in a metre
     pub const DRAW_SCALE: i32 = 50;
@@ -59,11 +61,18 @@ pub mod simulator {
             }
         }
         
+        /// Randomise the order of the pedestrians
+        pub fn randomise_pedestrian_order(&mut self) {
+            self.available_pedestrians.shuffle(&mut thread_rng());
+        }
+        
         /// Simulate a small period of time in a single step.
         /// 
         /// * `time_scale` - The amount of time (in seconds) that passes during each timestep
         pub fn simulate_timestep(&mut self, time_scale: f64) {
             //println!("Simulating one timestep...");
+            
+            self.update_active();
             
             // Collect the position and facing direction of every pedestrian to pass to Walker.simulate_timestep(), so that a pedestrian can see its neighbours.
             // This is an ugly way to do this, but I don't have time to implement a "nice" way right now.
@@ -74,6 +83,8 @@ pub mod simulator {
             }
             
             self.time_elapsed += time_scale;
+            
+            self.update_finished();
             
         }
         
@@ -88,19 +99,30 @@ pub mod simulator {
         
         /// Add a new pedestrian to the simulation
         pub fn add_pedestrian(&mut self, group: usize, start: usize, end: usize, target_speed: f64) {
-            self.active_pedestrians.push(
+            self.available_pedestrians.push(
                 pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed)
             );
         }
         
         /// Make some number of pedestrians active, depending on pedestrian_add_rate
         fn update_active(&mut self) {
-            
+            while self.available_pedestrians.len() > 0 && self.time_elapsed > /* add threshold */ ((self.active_pedestrians.len() + self.finished_pedestrians.len()) as f64) / self.pedestrian_add_rate {
+                self.active_pedestrians.push(self.available_pedestrians.pop().unwrap());
+            }
         }
         
         /// Check all active pedestrians and remove any that have reached their destinations
         fn update_finished(&mut self) {
-            
+            let mut i = 0;
+            while i < self.active_pedestrians.len() {
+                let ped = &self.active_pedestrians[i];
+                let dest = ped.get_dest_coords();
+                if ((ped.x - dest.0)*(ped.x - dest.0) + (ped.y - dest.1)*(ped.y - dest.1)).sqrt() < TARGET_LOCATION_RADIUS {
+                    self.finished_pedestrians.push( self.active_pedestrians.remove(i) );
+                } else {
+                    i += 1;
+                }
+            }
         }
         
         /// Draw this simulation with RayLib

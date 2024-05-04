@@ -4,6 +4,7 @@ pub mod pedestrian {
     use std::sync::Arc;
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
     use rand;
+    
     use crate::simulation::simulator::simulator::{SimArea, DRAW_SCALE};
     
     
@@ -174,6 +175,11 @@ pub mod pedestrian {
                 
             }
             
+        }
+        
+        /// Return destination coordinates
+        pub fn get_dest_coords(&self) -> (f64, f64) {
+            return self.environment.end_positions[self.group][self.target_location];
         }
         
         /// Draw this pedestrian with RayLib
