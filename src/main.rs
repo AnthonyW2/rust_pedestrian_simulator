@@ -19,6 +19,7 @@ fn main() {
     let mut crowd_simulation = CrowdSim::new(Arc::new(simualted_area_1), 10.0);
     
     crowd_simulation.add_pedestrian(0, 3, 4, 1.35);
+    crowd_simulation.add_pedestrian(0, 0, 2, 1.35);
     
     let (mut rl, thread) = raylib::init()
         .size(1200, 650)
@@ -43,7 +44,7 @@ fn main() {
         
         // Simulate one timestep & draw the simulation
         //crowd_simulation.simulate_timestep(0.015);
-        crowd_simulation.simulate_timestep(1.0 * frame_time.as_secs_f64());
+        crowd_simulation.simulate_timestep(4.0 * frame_time.as_secs_f64());
         crowd_simulation.draw(&mut rl_handle, (100,150));
         
         // Debug text

@@ -3,6 +3,7 @@ pub mod pedestrian {
     use std::f64::consts::{PI, TAU};
     use std::sync::Arc;
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
+    use rand;
     use crate::simulation::simulator::simulator::{SimArea, DRAW_SCALE};
     
     
@@ -26,6 +27,11 @@ pub mod pedestrian {
     
     /// The intensity of repulsion from a wall within the personal space radius, in radians per second
     const WALL_DIRACTION_REPULSION: f64 = 0.1;
+    
+    /// Intensity of random noise added to pedestrian speed
+    const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.6;
+    /// Intensity of random noise added to pedestrian facing direction
+    const PEDESTRIAN_DIRECTION_NOISE_FACTOR: f64 = 0.3;
     
     // Some constants that denote a particular behaviour
     pub const ETIQUETTE_LEFT_BIAS: usize = 0;
@@ -102,6 +108,8 @@ pub mod pedestrian {
             // Apply general behavioural rules and etiquette rules
             self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);
             
+            self.apply_noise(time_scale);
+            
             // Apply velocity to change position
             self.x += self.inst_speed * self.facing_direction.cos() * time_scale;
             self.y += self.inst_speed * self.facing_direction.sin() * time_scale;
@@ -123,6 +131,14 @@ pub mod pedestrian {
             
             // Iterate through all walls of self.environment and ensure that the pedestrian does not walk that way.
             
+            
+        }
+        
+        /// Apply some small random fluctuations to the facing direction and current speed
+        fn apply_noise(&mut self, time_scale: f64) {
+            
+            self.facing_direction += (2.0 * rand::random::<f64>() - 1.0) * PEDESTRIAN_DIRECTION_NOISE_FACTOR * time_scale;
+            self.inst_speed += (2.0 * rand::random::<f64>() - 1.0) * PEDESTRIAN_SPEED_NOISE_FACTOR * time_scale;
             
         }
         
