@@ -61,7 +61,9 @@ pub mod simulator {
         pub fn simulate_timestep(&mut self, time_scale: f64) {
             println!("Simulating one timestep...");
             
-            let pedestrian_positions = self.active_pedestrians.iter().map(|ped| (ped.x, ped.y)).collect::<Vec<_>>();
+            // Collect the position and facing direction of every pedestrian to pass to Walker.simulate_timestep(), so that a pedestrian can see its neighbours.
+            // This is an ugly way to do this, but I don't have time to implement a "nice" way right now.
+            let pedestrian_positions = self.active_pedestrians.iter().map(|ped| (ped.x, ped.y, ped.facing_direction)).collect::<Vec<_>>();
             
             for (i, ped) in self.active_pedestrians.iter_mut().enumerate() {
                 ped.simulate_timestep(time_scale, &pedestrian_positions[0..i], &pedestrian_positions[i+1..]);
@@ -85,12 +87,12 @@ pub mod simulator {
         }
         
         /// Make some number of pedestrians active, depending on pedestrian_add_rate
-        pub fn update_active(&mut self) {
+        fn update_active(&mut self) {
             
         }
         
         /// Check all active pedestrians and remove any that have reached their destinations
-        pub fn update_finished(&mut self) {
+        fn update_finished(&mut self) {
             
         }
         
