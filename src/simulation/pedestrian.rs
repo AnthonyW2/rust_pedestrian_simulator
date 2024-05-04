@@ -1,25 +1,25 @@
 pub mod pedestrian {
     
-    //use std::f64::consts::TAU;
+    use std::f64::consts::{PI, TAU};
     use std::sync::Arc;
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
     use crate::simulation::simulator::simulator::{SimArea, DRAW_SCALE};
     
     
     /// The acceleration of a pedestrian, in m⋅s^-2
-    const PEDESTRIAN_ACCEL: f64 = 0.1;
+    const PEDESTRIAN_ACCEL: f64 = 0.8;
     
-    /// The speed at which a pedestrian changes its facing direction, in radians per second.
-    const PEDESTRIAN_DIRECTION_SPEED: f64 = 0.5;
+    /// A multiplier applied to the direction alignment function
+    const PEDESTRIAN_DIRECTION_CHANGE_FACTOR: f64 = 1.0;
     
     /// The radius of a pedestrian's body, in metres
-    pub const PEDESTRIAN_RADIUS: f64 = 0.4;
+    const PEDESTRIAN_RADIUS: f64 = 0.4;
     
     /// The radius of a pedestrian's personal space, in metres
-    pub const PEDESTRIAN_SPACE_RADIUS: f64 = 0.4;
+    const PEDESTRIAN_SPACE_RADIUS: f64 = 0.6;
     
     /// The intensity of repulsion between pedestrians within the personal space radius (acceleration, m⋅s^-2)
-    pub const PEDESTRIAN_REPULSION: f64 = 0.1;
+    const PEDESTRIAN_REPULSION: f64 = 0.1;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
     const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
@@ -88,11 +88,8 @@ pub mod pedestrian {
                 self.inst_speed = self.target_speed;
             }
             
-            let target_x = self.environment.end_positions[self.group][self.target_location].0;
-            let target_y = self.environment.end_positions[self.group][self.target_location].1;
-            
-            // Angle = y.atan2(x)
-            
+            // Update the facing direction to be better aligned with the destination
+            self.facing_direction = self.get_new_direction(time_scale);
             
             // Apply velocity to change position
             self.x += self.inst_speed * self.facing_direction.cos() * time_scale;
@@ -100,6 +97,27 @@ pub mod pedestrian {
             
             self.resolve_wall_collisions();
             
+        }
+        
+        /// Find a facing direction that is better aligned with the direction of the destination
+        fn get_new_direction(&self, time_scale: f64) -> f64 {
+            
+            let target_x = self.environment.end_positions[self.group][self.target_location].0;
+            let target_y = self.environment.end_positions[self.group][self.target_location].1;
+            
+            // The angle the pedestrian should be facing (between 0 and 2π)
+            let target_angle = (target_y - self.y).atan2(target_x - self.x);
+            
+            // The difference between the facing and target angles
+            let mut angle_diff = self.facing_direction - target_angle;
+            
+            // Constrain angle_diff between -π and π
+            if angle_diff > PI {
+                angle_diff -= TAU;
+            }
+            
+            // Return the new facing direction of the pedestrian
+            return ((self.facing_direction - angle_diff*PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale) + TAU) % TAU;
         }
         
         /// Use the general behaviours and the specific etiquette behaviours to determine the changes to this pedestrian's speed and direction of travel.
@@ -163,6 +181,27 @@ pub mod pedestrian {
                 (DRAW_SCALE as f32) * (PEDESTRIAN_RADIUS as f32),
                 Color::from_hex("505050").unwrap()
             );
+            
+            rl_handle.draw_line(
+                offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
+                offset.0 + ((DRAW_SCALE as f64)*(self.x + self.inst_speed * self.facing_direction.cos())) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*(self.y + self.inst_speed * self.facing_direction.sin())) as i32,
+                Color::from_hex("FF0000").unwrap()
+            );
+            
+            let target_x = self.environment.end_positions[self.group][self.target_location].0;
+            let target_y = self.environment.end_positions[self.group][self.target_location].1;
+            let target_angle = ((target_y - self.y).atan2(target_x - self.x) + TAU) % TAU;
+            
+            rl_handle.draw_line(
+                offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
+                offset.0 + ((DRAW_SCALE as f64)*(self.x + target_angle.cos())) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*(self.y + target_angle.sin())) as i32,
+                Color::from_hex("FF8000").unwrap()
+            );
+            
             
         }
         

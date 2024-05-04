@@ -17,7 +17,7 @@ pub mod simulator {
         /// The 2D space where the simulation takes place
         area: Arc<SimArea>,
         /// The amount of time simulated, in seconds
-        time_elapsed: f64,
+        pub time_elapsed: f64,
         /// All the walkers contained in the simulation
         available_pedestrians: Vec<pedestrian::Walker>,
         /// All the walkers currently walking
@@ -72,6 +72,9 @@ pub mod simulator {
             for (i, ped) in self.active_pedestrians.iter_mut().enumerate() {
                 ped.simulate_timestep(time_scale, &pedestrian_positions[0..i], &pedestrian_positions[i+1..]);
             }
+            
+            self.time_elapsed += time_scale;
+            
         }
         
         /// Add pedestrians to the simulation, with behaviours that are chosen with weighted random choices
