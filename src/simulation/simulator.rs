@@ -12,6 +12,8 @@ pub mod simulator {
     pub struct CrowdSim {
         /// The 2D space where the simulation takes place
         area: Arc<SimArea>,
+        /// The amount of time simulated, in seconds
+        time_elapsed: f64,
         /// All the walkers contained in the simulation
         available_pedestrians: Vec<pedestrian::Walker>,
         /// All the walkers currently walking
@@ -41,9 +43,11 @@ pub mod simulator {
         /// Create a new CrowdSim object.
         /// 
         /// * `area` - A `SimArea` object describing the space for the simulation to be set in.
+        /// * `pedestrian_add_rate` - The number of pedestrians added to the simulation per second.
         pub fn new(area: Arc<SimArea>, pedestrian_add_rate: f64) -> CrowdSim {
             CrowdSim {
                 area,
+                time_elapsed: 0.0,
                 available_pedestrians: Vec::new(),
                 active_pedestrians: Vec::new(),
                 finished_pedestrians: Vec::new(),
@@ -57,8 +61,10 @@ pub mod simulator {
         pub fn simulate_timestep(&mut self, time_scale: f64) {
             println!("Simulating one timestep...");
             
-            for ped in &mut self.available_pedestrians {
-                ped.simulate_timestep(time_scale);
+            let pedestrian_positions = self.active_pedestrians.iter().map(|ped| (ped.x, ped.y)).collect::<Vec<_>>();
+            
+            for (i, ped) in self.active_pedestrians.iter_mut().enumerate() {
+                ped.simulate_timestep(time_scale, &pedestrian_positions[0..i], &pedestrian_positions[i+1..]);
             }
         }
         
@@ -76,6 +82,16 @@ pub mod simulator {
             self.available_pedestrians.push(
                 pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed)
             );
+        }
+        
+        /// Make some number of pedestrians active, depending on pedestrian_add_rate
+        pub fn update_active(&mut self) {
+            
+        }
+        
+        /// Check all active pedestrians and remove any that have reached their destinations
+        pub fn update_finished(&mut self) {
+            
         }
         
     }

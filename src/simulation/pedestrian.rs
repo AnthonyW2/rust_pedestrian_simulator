@@ -69,14 +69,16 @@ pub mod pedestrian {
         
         /// Simulate a small period of time in a single step.
         /// 
-        /// time_scale: The amount of time (in seconds) that passes during each timestep
-        pub fn simulate_timestep(&mut self, time_scale: f64) {
+        /// `time_scale`: The amount of time (in seconds) that passes during each timestep
+        /// `other_pedestrians_before`: A list of pedestrian positions (that have already been simulated)
+        /// `other_pedestrians_after`: A list of pedestrian positions (that are yet to be simulated)
+        pub fn simulate_timestep(&mut self, time_scale: f64, other_pedestrians_before: &[(f64, f64)], other_pedestrians_after: &[(f64, f64)]) {
             println!("Simulating one pedestrian timestep...");
             
             // Find the distance and normal vector to each wall/boundary in the simulation
-            //let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
+            let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
             
-            self.apply_decisions();
+            self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);
             
             // Apply acceleration/deceleration to change velocity
             if self.inst_speed < self.target_speed {
@@ -101,15 +103,13 @@ pub mod pedestrian {
         }
         
         /// Use the general behaviours and the specific etiquette behaviours to determine the changes to this pedestrian's speed and direction of travel.
-        pub fn apply_decisions(&mut self) {
+        pub fn apply_decisions(&mut self, wall_normals: Vec<(f64, (f64, f64))>, other_pedestrians_before: &[(f64, f64)], other_pedestrians_after: &[(f64, f64)]) {
             
             // Iterate through all neighbouring pedestrians and check for front-on collisions and side collisions.
             
             
             // Iterate through all walls of self.environment and ensure that the pedestrian does not walk that way.
             // Worst-case: re-align the direction of travel with the wall.
-            
-            let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
             
             
         }
