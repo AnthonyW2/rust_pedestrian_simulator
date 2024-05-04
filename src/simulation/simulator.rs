@@ -1,12 +1,16 @@
 pub mod simulator {
     
     use std::sync::Arc;
-    
+    use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
     use crate::simulation::pedestrian::pedestrian;
     //use crate::simulation::pedestrian::pedestrian::Walker;
     
+    
     /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
     pub const TARGET_LOCATION_RADIUS: f64 = 0.5;
+    
+    /// How many pixels in a metre
+    pub const DRAW_SCALE: i32 = 50;
     
     /// Contains all information related to a crowd simulation
     pub struct CrowdSim {
@@ -59,7 +63,7 @@ pub mod simulator {
         /// 
         /// * `time_scale` - The amount of time (in seconds) that passes during each timestep
         pub fn simulate_timestep(&mut self, time_scale: f64) {
-            println!("Simulating one timestep...");
+            //println!("Simulating one timestep...");
             
             // Collect the position and facing direction of every pedestrian to pass to Walker.simulate_timestep(), so that a pedestrian can see its neighbours.
             // This is an ugly way to do this, but I don't have time to implement a "nice" way right now.
@@ -81,7 +85,7 @@ pub mod simulator {
         
         /// Add a new pedestrian to the simulation
         pub fn add_pedestrian(&mut self, group: usize, start: usize, end: usize, target_speed: f64) {
-            self.available_pedestrians.push(
+            self.active_pedestrians.push(
                 pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed)
             );
         }
@@ -93,6 +97,20 @@ pub mod simulator {
         
         /// Check all active pedestrians and remove any that have reached their destinations
         fn update_finished(&mut self) {
+            
+        }
+        
+        /// Draw this simulation with RayLib
+        /// 
+        /// * `rl_handle` - The RaylibDrawHandle used to draw the objects
+        /// * `offset` - The x and y offset of this object, in pixels
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+            
+            self.area.draw(rl_handle, offset);
+            
+            for ped in &self.active_pedestrians {
+                ped.draw(rl_handle, offset);
+            }
             
         }
         
@@ -117,6 +135,60 @@ pub mod simulator {
             self.start_positions.push(starts);
             self.end_positions.push(ends);
         }
+        
+        /// Draw this environment with RayLib
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+            
+            // Add metre gridlines
+            let max_x = self.boundaries.iter().map(|wall| wall.x1.max(wall.x2) as i32).max().unwrap();
+            let max_y = self.boundaries.iter().map(|wall| wall.y1.max(wall.y2) as i32).max().unwrap();
+            for x in 0..max_x {
+                rl_handle.draw_line(
+                    offset.0 + DRAW_SCALE*x,
+                    offset.1,
+                    offset.0 + DRAW_SCALE*x,
+                    offset.1 + DRAW_SCALE*max_y,
+                    Color::from_hex("b0b0b0").unwrap()
+                );
+            }
+            for y in 0..max_y {
+                rl_handle.draw_line(
+                    offset.0,
+                    offset.1 + DRAW_SCALE*y,
+                    offset.0 + DRAW_SCALE*max_x,
+                    offset.1 + DRAW_SCALE*y,
+                    Color::from_hex("b0b0b0").unwrap()
+                );
+            }
+            
+            
+            // Draw the walls
+            for wall in &self.boundaries {
+                wall.draw(rl_handle, offset);
+            }
+            
+            // Draw the start & end points
+            for (x,y) in (&self.start_positions).iter().flatten() {
+                rl_handle.draw_ellipse(
+                    offset.0 + DRAW_SCALE*(*x as i32),
+                    offset.1 + DRAW_SCALE*(*y as i32),
+                    10.0,
+                    10.0,
+                    Color::from_hex("3cbd00").unwrap()
+                );
+            }
+            for (x,y) in (&self.end_positions).iter().flatten() {
+                rl_handle.draw_ellipse(
+                    offset.0 + DRAW_SCALE*(*x as i32),
+                    offset.1 + DRAW_SCALE*(*y as i32),
+                    10.0,
+                    10.0,
+                    Color::from_hex("005de9").unwrap()
+                );
+            }
+            
+        }
+        
     }
     
     impl Wall {
@@ -182,6 +254,20 @@ pub mod simulator {
             return (dist, normal_vec);
             
         }
+        
+        /// Draw this wall with RayLib
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+            
+            rl_handle.draw_line(
+                offset.0 + DRAW_SCALE*(self.x1 as i32),
+                offset.1 + DRAW_SCALE*(self.y1 as i32),
+                offset.0 + DRAW_SCALE*(self.x2 as i32),
+                offset.1 + DRAW_SCALE*(self.y2 as i32),
+                Color::from_hex("000000").unwrap()
+            );
+            
+        }
+        
     }
     
 }
