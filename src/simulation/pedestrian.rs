@@ -34,10 +34,12 @@ pub mod pedestrian {
     /// Intensity of random noise added to pedestrian facing direction
     const PEDESTRIAN_DIRECTION_NOISE_FACTOR: f64 = 0.3;
     
-    // Some constants that denote a particular behaviour
-    pub const ETIQUETTE_LEFT_BIAS: usize = 0;
-    pub const ETIQUETTE_RIGHT_BIAS: usize = 1;
-    pub const ETIQUETTE_RANDOM: usize = 2;
+    // Etiquette option enum
+    pub enum Etiquette {
+        LEFT_BIAS,  // Stay to the left
+        RIGHT_BIAS, // Stay to the right
+        DIRECT_DEST // Walk directly towards the destination
+    }
     
     pub struct Walker {
         /// Absolute x-coordinate the pedestrian, in metres.
@@ -57,14 +59,17 @@ pub mod pedestrian {
         /// The group that the pedestrian is a part of
         group: usize,
         /// The ID of the target location that the pedestrian walks towards
-        target_location: usize
+        target_location: usize,
+        
+        /// The tested behavioural rule that this pedestrian follows
+        etiquette: Etiquette
     }
     
     impl Walker {
         /// Create a new Walker object.
         /// 
         /// * `area` - A `SimArea` object describing the space for the simulation to be set in.
-        pub fn new(environment: Arc<SimArea>, group: usize, start: usize, end: usize, target_speed: f64) -> Walker {
+        pub fn new(environment: Arc<SimArea>, group: usize, start: usize, end: usize, target_speed: f64, etiquette: Etiquette) -> Walker {
             Walker {
                 x: environment.start_positions[group][start].0,
                 y: environment.start_positions[group][start].1,
@@ -73,7 +78,8 @@ pub mod pedestrian {
                 inst_speed: 0.0,
                 environment,
                 group,
-                target_location: end
+                target_location: end,
+                etiquette
             }
         }
         
@@ -105,6 +111,8 @@ pub mod pedestrian {
             
             // Update the facing direction to be better aligned with the destination
             self.facing_direction = nudge_angle(self.facing_direction, target_angle, PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale);
+            
+            
             
             // Apply general behavioural rules and etiquette rules
             self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);

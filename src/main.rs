@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 pub mod simulation;
 use simulation::simulator::simulator::{SimArea, CrowdSim};
+use simulation::pedestrian::pedestrian::Etiquette;
 
 
 const SIM_SPEED: f64 = 4.0;
@@ -22,11 +23,11 @@ fn create_demo_sim() -> CrowdSim {
     
     let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 4.0);
     
-    crowd_simulation.add_pedestrian(0, 3, 4, 1.35);
-    crowd_simulation.add_pedestrian(0, 0, 2, 1.35);
-    crowd_simulation.add_pedestrian(0, 1, 0, 1.35);
-    crowd_simulation.add_pedestrian(0, 2, 0, 1.35);
-    crowd_simulation.add_pedestrian(0, 2, 1, 1.35);
+    crowd_simulation.add_pedestrian(0, 3, 4, 1.35, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 0, 2, 1.35, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 1, 0, 1.35, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 2, 0, 1.35, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 2, 1, 1.35, Etiquette::DIRECT_DEST);
     
     crowd_simulation.randomise_pedestrian_order();
     

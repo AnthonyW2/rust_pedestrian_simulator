@@ -98,15 +98,15 @@ pub mod simulator {
         }
         
         /// Add a new pedestrian to the simulation
-        pub fn add_pedestrian(&mut self, group: usize, start: usize, end: usize, target_speed: f64) {
+        pub fn add_pedestrian(&mut self, group: usize, start: usize, end: usize, target_speed: f64, etiquette: pedestrian::Etiquette) {
             self.available_pedestrians.push(
-                pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed)
+                pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed, etiquette)
             );
         }
         
         /// Make some number of pedestrians active, depending on pedestrian_add_rate
         fn update_active(&mut self) {
-            while self.available_pedestrians.len() > 0 && self.time_elapsed > /* add threshold */ ((self.active_pedestrians.len() + self.finished_pedestrians.len()) as f64) / self.pedestrian_add_rate {
+            while self.available_pedestrians.len() > 0 && self.time_elapsed > ((self.active_pedestrians.len() + self.finished_pedestrians.len()) as f64) / self.pedestrian_add_rate {
                 self.active_pedestrians.push(self.available_pedestrians.pop().unwrap());
             }
         }
@@ -225,7 +225,7 @@ pub mod simulator {
         
         /// Given a point P, determine the vector that points from the closest point on the line to P
         /// 
-        /// Returns (distance, (normal x, normal y))
+        /// Output form: (distance, (normal x, normal y))
         pub fn get_normal_vector(&self, p: (f64, f64)) -> (f64, (f64, f64)) {
             // Define some useful vector functions
             fn vec_dot(v1: (f64, f64), v2: (f64, f64)) -> f64 { v1.0*v2.0 + v1.1*v2.1 }
