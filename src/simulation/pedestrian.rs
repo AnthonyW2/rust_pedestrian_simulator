@@ -19,10 +19,13 @@ pub mod pedestrian {
     const PEDESTRIAN_SPACE_RADIUS: f64 = 0.6;
     
     /// The intensity of repulsion between pedestrians within the personal space radius (acceleration, m⋅s^-2)
-    const PEDESTRIAN_REPULSION: f64 = 0.1;
+    //const PEDESTRIAN_REPULSION: f64 = 0.1;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
     const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
+    
+    /// The intensity of repulsion from a wall within the personal space radius, in radians per second
+    const WALL_DIRACTION_REPULSION: f64 = 0.1;
     
     // Some constants that denote a particular behaviour
     pub const ETIQUETTE_LEFT_BIAS: usize = 0;
@@ -78,8 +81,6 @@ pub mod pedestrian {
             // Find the distance and normal vector to each wall/boundary in the simulation
             let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
             
-            self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);
-            
             // Apply acceleration/deceleration to change velocity
             if self.inst_speed < self.target_speed {
                 self.inst_speed += PEDESTRIAN_ACCEL * time_scale;
@@ -88,8 +89,18 @@ pub mod pedestrian {
                 self.inst_speed = self.target_speed;
             }
             
+            // Coordinates of the destination
+            let target_x = self.environment.end_positions[self.group][self.target_location].0;
+            let target_y = self.environment.end_positions[self.group][self.target_location].1;
+            
+            // The angle the pedestrian should be facing to reach their destination (between 0 and 2π)
+            let target_angle = (target_y - self.y).atan2(target_x - self.x);
+            
             // Update the facing direction to be better aligned with the destination
-            self.facing_direction = self.get_new_direction(time_scale);
+            self.facing_direction = nudge_angle(self.facing_direction, target_angle, PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale);
+            
+            // Apply general behavioural rules and etiquette rules
+            self.apply_decisions(wall_normals, other_pedestrians_before, other_pedestrians_after);
             
             // Apply velocity to change position
             self.x += self.inst_speed * self.facing_direction.cos() * time_scale;
@@ -97,27 +108,6 @@ pub mod pedestrian {
             
             self.resolve_wall_collisions();
             
-        }
-        
-        /// Find a facing direction that is better aligned with the direction of the destination
-        fn get_new_direction(&self, time_scale: f64) -> f64 {
-            
-            let target_x = self.environment.end_positions[self.group][self.target_location].0;
-            let target_y = self.environment.end_positions[self.group][self.target_location].1;
-            
-            // The angle the pedestrian should be facing (between 0 and 2π)
-            let target_angle = (target_y - self.y).atan2(target_x - self.x);
-            
-            // The difference between the facing and target angles
-            let mut angle_diff = self.facing_direction - target_angle;
-            
-            // Constrain angle_diff between -π and π
-            if angle_diff > PI {
-                angle_diff -= TAU;
-            }
-            
-            // Return the new facing direction of the pedestrian
-            return ((self.facing_direction - angle_diff*PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale) + TAU) % TAU;
         }
         
         /// Use the general behaviours and the specific etiquette behaviours to determine the changes to this pedestrian's speed and direction of travel.
@@ -132,7 +122,6 @@ pub mod pedestrian {
             
             
             // Iterate through all walls of self.environment and ensure that the pedestrian does not walk that way.
-            // Worst-case: re-align the direction of travel with the wall.
             
             
         }
@@ -205,6 +194,26 @@ pub mod pedestrian {
             
         }
         
+    }
+    
+    /// Given an input angle and a target angle, move the input angle so that it is closer to the target angle
+    /// 
+    /// * `initial_angle` - Angle in radians, between 0 and 2π
+    /// * `target_angle` - Angle in radians, between -π and π
+    /// * `nudge_ratio` - A multiplier for how much the angle is changed (change in angle = diff(target_angle, initial_angle) * nudge_ratio)
+    fn nudge_angle(initial_angle: f64, target_angle: f64, nudge_ratio: f64) -> f64 {
+        
+        // The difference between the initial and target angles
+        let mut angle_diff = initial_angle - target_angle;
+        
+        // Constrain angle_diff between -π and π
+        angle_diff = if angle_diff > PI {angle_diff - TAU} else {angle_diff};
+        //if angle_diff > PI {
+        //    angle_diff -= TAU;
+        //}
+        
+        // Return the new angle
+        return ((initial_angle - angle_diff*nudge_ratio) + TAU) % TAU;
     }
     
 }

@@ -43,7 +43,7 @@ fn main() {
         
         // Simulate one timestep & draw the simulation
         //crowd_simulation.simulate_timestep(0.015);
-        crowd_simulation.simulate_timestep(frame_time.as_secs_f64());
+        crowd_simulation.simulate_timestep(1.0 * frame_time.as_secs_f64());
         crowd_simulation.draw(&mut rl_handle, (100,150));
         
         // Debug text
