@@ -6,20 +6,17 @@ use std::sync::Arc;
 pub mod simulation;
 use simulation::simulator::simulator::{SimArea, CrowdSim};
 
-use simulation::simulator::simulator::{Wall};
-use simulation::pedestrian::pedestrian::{Walker};
-
 fn main() {
     let mut simualted_area_1 = SimArea::new();
     
-    simualted_area_1.add_wall((3.0,1.0), (3.0,10.0));
-    simualted_area_1.add_start_end_group(vec![(3.0,2.0)], vec![(20.0,0.0),(0.0,20.0)]);
+    simualted_area_1.add_wall((2.0,4.0), (6.0,4.0));
+    simualted_area_1.add_start_end_group(vec![(1.0,3.0)], vec![(20.0,0.0),(0.0,20.0)]);
     
     //let shared_area_1 = Arc::new(simualted_area_1);
     //
     //let ped1 = Walker::new(&shared_area_1, 0, 0, 0, 4.0);
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simualted_area_1));
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simualted_area_1), 10.0);
     
     crowd_simulation.add_pedestrian(0, 0, 0, 4.0);
     
@@ -27,7 +24,6 @@ fn main() {
     
     //simualted_area_1.add_wall((0.0,0.0), (0.0,10.0));
     
-    /*
     let (mut rl, thread) = raylib::init()
         .size(640, 480)
         .resizable() // If the window is not resizable it will float by default

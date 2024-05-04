@@ -5,12 +5,21 @@ pub mod simulator {
     use crate::simulation::pedestrian::pedestrian;
     //use crate::simulation::pedestrian::pedestrian::Walker;
     
+    /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
+    pub const TARGET_LOCATION_RADIUS: f64 = 0.5;
+    
     /// Contains all information related to a crowd simulation
     pub struct CrowdSim {
         /// The 2D space where the simulation takes place
         area: Arc<SimArea>,
         /// All the walkers contained in the simulation
-        pedestrians: Vec<pedestrian::Walker>
+        available_pedestrians: Vec<pedestrian::Walker>,
+        /// All the walkers currently walking
+        active_pedestrians: Vec<pedestrian::Walker>,
+        /// All the walkers that have reached their destinations
+        finished_pedestrians: Vec<pedestrian::Walker>,
+        /// The number of pedestrians added to the simulation per second
+        pedestrian_add_rate: f64
     }
     
     /// Describes a 2 dimensional environment where a simulation takes place
@@ -32,10 +41,13 @@ pub mod simulator {
         /// Create a new CrowdSim object.
         /// 
         /// * `area` - A `SimArea` object describing the space for the simulation to be set in.
-        pub fn new(area: Arc<SimArea>) -> CrowdSim {
+        pub fn new(area: Arc<SimArea>, pedestrian_add_rate: f64) -> CrowdSim {
             CrowdSim {
                 area,
-                pedestrians: Vec::new()
+                available_pedestrians: Vec::new(),
+                active_pedestrians: Vec::new(),
+                finished_pedestrians: Vec::new(),
+                pedestrian_add_rate
             }
         }
         
@@ -45,13 +57,13 @@ pub mod simulator {
         pub fn simulate_timestep(&mut self, time_scale: f64) {
             println!("Simulating one timestep...");
             
-            for ped in &mut self.pedestrians {
+            for ped in &mut self.available_pedestrians {
                 ped.simulate_timestep(time_scale);
             }
         }
         
         /// Add pedestrians to the simulation, with behaviours that are chosen with weighted random choices
-        pub fn add_pedestrian_group(&mut self, number: usize, behaviours: Vec<usize>, behaviour_weights: Vec<f64>) {
+        pub fn add_pedestrian_set(&mut self, number: usize, group: usize, behaviour: usize) {
             
             for _ in 0..number {
                 
@@ -59,9 +71,9 @@ pub mod simulator {
             
         }
         
-        /// Add pedestrians to the simulation, with behaviours that are chosen with weighted random choices
+        /// Add a new pedestrian to the simulation
         pub fn add_pedestrian(&mut self, group: usize, start: usize, end: usize, target_speed: f64) {
-            self.pedestrians.push(
+            self.available_pedestrians.push(
                 pedestrian::Walker::new(self.area.clone(), group, start, end, target_speed)
             );
         }
@@ -96,8 +108,10 @@ pub mod simulator {
             }
         }
         
-        /// Find a vector to nudge the pedestrian, which resolves the collision with this wall
-        pub fn get_walker_collision_vector(&self, pedestrian: &pedestrian::Walker) -> (f64, f64){
+        /// Given a point P, determine the vector that points from the closest point on the line to P
+        /// 
+        /// Returns (distance, (normal x, normal y))
+        pub fn get_normal_vector(&self, p: (f64, f64)) -> (f64, (f64, f64)) {
             // Define some useful vector functions
             fn vec_dot(v1: (f64, f64), v2: (f64, f64)) -> f64 { v1.0*v2.0 + v1.1*v2.1 }
             fn vec_add(v1: (f64, f64), v2: (f64, f64)) -> (f64, f64) { (v1.0 + v2.0, v1.1 + v2.1) }
@@ -112,8 +126,6 @@ pub mod simulator {
             let a = (self.x1, self.y1);
             // B denotes the second point (x2,y2) of the line
             let b = (self.x2, self.y2);
-            // P denotes the coordinates of the pedestrian
-            let p = (pedestrian.x, pedestrian.y);
             
             let ap = vec_sub(p,a);
             let ab = vec_sub(b,a);
@@ -141,24 +153,15 @@ pub mod simulator {
             // Distance from closest_point to P
             let dist = vec_dist_sq(closest_point, p).sqrt();
             
-            // Edge case: if the pedestrian is on the line, don't do anything
+            // Edge case: given point lies on the line
             if dist == 0.0 {
-                return (0.0,0.0);
+                return (0.0, (0.0,0.0));
             }
             
-            if dist < pedestrian::PEDESTRIAN_RADIUS {
-                // Pedestrian needs to be nudged away from the wall by some multiple (k) of away_vec
-                
-                // away_vec is the vector that points from closest_point to p
-                let away_vec = vec_sub(p, closest_point);
-                
-                let k = pedestrian::PEDESTRIAN_RADIUS/dist - 1.0;
-                
-                return vec_mul(away_vec, k);
-            }
+            // normal_vec is the vector that points from closest_point on the line to P
+            let normal_vec = vec_sub(p, closest_point);
             
-            // No nudge required, return 0 vector
-            return (0.0,0.0);
+            return (dist, normal_vec);
             
         }
     }

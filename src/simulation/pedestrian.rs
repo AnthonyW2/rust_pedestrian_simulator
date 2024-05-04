@@ -1,13 +1,28 @@
 pub mod pedestrian {
     
-    use std::f64::consts::TAU;
+    //use std::f64::consts::TAU;
     
     use std::sync::Arc;
     
     use crate::simulation::simulator::simulator::SimArea;
     
-    // The radius of a pedestrian, in metres
-    pub const PEDESTRIAN_RADIUS: f64 = 2.0;
+    /// The acceleration of a pedestrian, in m⋅s^-2
+    const PEDESTRIAN_ACCEL: f64 = 0.1;
+    
+    /// The speed at which a pedestrian changes its facing direction, in radians per second.
+    const PEDESTRIAN_DIRECTION_SPEED: f64 = 0.5;
+    
+    /// The radius of a pedestrian's body, in metres
+    pub const PEDESTRIAN_RADIUS: f64 = 0.4;
+    
+    /// The radius of a pedestrian's personal space, in metres
+    pub const PEDESTRIAN_SPACE_RADIUS: f64 = 0.4;
+    
+    /// The intensity of repulsion between pedestrians within the personal space radius (acceleration, m⋅s^-2)
+    pub const PEDESTRIAN_REPULSION: f64 = 0.1;
+    
+    /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
+    const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
     
     // Some constants that denote a particular behaviour
     pub const ETIQUETTE_LEFT_BIAS: usize = 0;
@@ -19,7 +34,7 @@ pub mod pedestrian {
         pub x: f64,
         /// Absolute y-coordinate the pedestrian
         pub y: f64,
-        /// Instantaneous direction of travel, between 0 and 1, where 0 is east and the angle increases counterclockwise.
+        /// Instantaneous direction of travel, in radians (between 0 and 2π).
         pub facing_direction: f64,
         
         /// Preferred walking speed, in m/s.
@@ -29,6 +44,8 @@ pub mod pedestrian {
         
         /// The 2D environment that the pedestrian is within
         environment: Arc<SimArea>,
+        /// The group that the pedestrian is a part of
+        group: usize,
         /// The ID of the target location that the pedestrian walks towards
         target_location: usize
     }
@@ -45,6 +62,7 @@ pub mod pedestrian {
                 target_speed,
                 inst_speed: 0.0,
                 environment,
+                group,
                 target_location: end
             }
         }
@@ -55,10 +73,28 @@ pub mod pedestrian {
         pub fn simulate_timestep(&mut self, time_scale: f64) {
             println!("Simulating one pedestrian timestep...");
             
+            // Find the distance and normal vector to each wall/boundary in the simulation
+            //let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
+            
             self.apply_decisions();
             
-            self.x += self.inst_speed * (self.facing_direction * TAU).cos();
-            self.y += self.inst_speed * (self.facing_direction * TAU).sin();
+            // Apply acceleration/deceleration to change velocity
+            if self.inst_speed < self.target_speed {
+                self.inst_speed += PEDESTRIAN_ACCEL;
+            }
+            if self.inst_speed > self.target_speed {
+                self.inst_speed = self.target_speed;
+            }
+            
+            let target_x = self.environment.end_positions[self.group][self.target_location].0;
+            let target_y = self.environment.end_positions[self.group][self.target_location].1;
+            
+            // Angle = y.atan2(x)
+            
+            
+            // Apply velocity to change position
+            self.x += self.inst_speed * self.facing_direction.cos();
+            self.y += self.inst_speed * self.facing_direction.sin();
             
             self.resolve_wall_collisions();
             
@@ -69,9 +105,11 @@ pub mod pedestrian {
             
             // Iterate through all neighbouring pedestrians and check for front-on collisions and side collisions.
             
+            
             // Iterate through all walls of self.environment and ensure that the pedestrian does not walk that way.
             // Worst-case: re-align the direction of travel with the wall.
             
+            let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
             
             
         }
@@ -80,9 +118,32 @@ pub mod pedestrian {
         pub fn resolve_wall_collisions(&mut self) {
             
             for wall in &self.environment.boundaries {
-                let nudge = wall.get_walker_collision_vector(self);
-                self.x += nudge.0;
-                self.y += nudge.1;
+                // Get the normal vector to the wall
+                let (dist, normal) = wall.get_normal_vector((self.x, self.y));
+                
+                // Edge case: if the pedestrian is on the line, don't do anything
+                if dist == 0.0 {
+                    return;
+                }
+                
+                if dist < PEDESTRIAN_RADIUS {
+                    // Pedestrian needs to be nudged away from the wall by some multiple (k) of the normal vector
+                    let k = PEDESTRIAN_RADIUS/dist - 1.0;
+                    
+                    // Move the pedestrian away from the wall
+                    self.x += normal.0 * k;
+                    self.y += normal.1 * k;
+                }
+                
+                // Change the facing direction of the pedestrian
+                
+                
+                // If a collision occurred: pedestrian should face perpendicular to the wall
+                
+                
+                // If the wall is within the pedestrian's personal space radius, nudge the direction vector away slightly
+                
+                
             }
             
         }
