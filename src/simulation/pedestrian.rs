@@ -34,7 +34,7 @@ pub mod pedestrian {
     const PEDESTRIAN_PSPACE_REPULSION: f64 = 0.3;
     
     /// The intensity of repulsion from a wall within the personal space radius
-    const WALL_REPULSION: f64 = 0.1;
+    const WALL_REPULSION: f64 = 0.2;
     
     /// Intensity of random noise added to pedestrian speed
     const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.6;
@@ -143,7 +143,7 @@ pub mod pedestrian {
             self.x += self.inst_speed * self.facing_direction.cos() * time_scale;
             self.y += self.inst_speed * self.facing_direction.sin() * time_scale;
             
-            self.resolve_wall_collisions(); // NOTE: this may need to be moved up
+            self.resolve_wall_collisions(time_scale);
             
         }
         
@@ -189,6 +189,25 @@ pub mod pedestrian {
                 }
                 
                 // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
+                
+                // Within view to the right
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
+                    // Cancel right-bias
+                    if self.etiquette == Etiquette::RightBias {
+                        self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                    }
+                }
+                
+                // Within view to the left
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
+                    // Cancel left-bias
+                    if self.etiquette == Etiquette::LeftBias {
+                        self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                    }
+                }
+                
+                // Recalculate relative neighbour direction
                 let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view in front
@@ -244,25 +263,6 @@ pub mod pedestrian {
                     
                 }
                 
-                // Recalculate relative neighbour direction
-                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
-                
-                // Within view to the right
-                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
-                    // Cancel right-bias
-                    if self.etiquette == Etiquette::RightBias {
-                        self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
-                    }
-                }
-                
-                // Within view to the left
-                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
-                    // Cancel left-bias
-                    if self.etiquette == Etiquette::LeftBias {
-                        self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
-                    }
-                }
-                
                 // Within personal space
                 if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
                     // Change the direction of travel to align better with the angle facing away from the neighbour
@@ -289,17 +289,20 @@ pub mod pedestrian {
         }
         
         /// Check all walls in the relevant environment and resolve any collisions.
-        fn resolve_wall_collisions(&mut self) {
+        fn resolve_wall_collisions(&mut self, time_scale: f64) {
             
             for wall in &self.environment.boundaries {
                 // Get the normal vector to the wall
                 let (dist, normal) = wall.get_normal_vector((self.x, self.y));
+                
+                let normal_angle = normal.1.atan2(normal.0);
                 
                 // Edge case: if the pedestrian is on the line, don't do anything
                 if dist == 0.0 {
                     return;
                 }
                 
+                // Check for collision
                 if dist < PEDESTRIAN_RADIUS {
                     // Pedestrian needs to be nudged away from the wall by some multiple (k) of the normal vector
                     let k = PEDESTRIAN_RADIUS/dist - 1.0;
@@ -307,16 +310,19 @@ pub mod pedestrian {
                     // Move the pedestrian away from the wall
                     self.x += normal.0 * k;
                     self.y += normal.1 * k;
+                    
+                    // Nudge the direction of travel away from the wall (in 1 second the pedestrian will face directly away from the wall)
+                    self.facing_direction = nudge_angle(self.facing_direction, normal_angle, time_scale);
+                    
                 }
                 
-                // Change the facing direction of the pedestrian
-                
-                
-                // If a collision occurred: pedestrian should face perpendicular to the wall
-                
-                
                 // If the wall is within the pedestrian's personal space radius, nudge the direction vector away slightly
-                
+                if dist < PEDESTRIAN_PSPACE_RADIUS {
+                    
+                    // Nudge the direction of travel away from the wall
+                    self.facing_direction = nudge_angle(self.facing_direction, normal_angle, WALL_REPULSION*time_scale);
+                    
+                }
                 
             }
             
