@@ -8,7 +8,7 @@ use simulation::simulator::simulator::{SimArea, CrowdSim};
 use simulation::pedestrian::pedestrian::Etiquette;
 
 
-const SIM_SPEED: f64 = 4.0;
+const SIM_SPEED: f64 = 2.0;
 
 /// Create a simple demonstration & debugging simulation
 fn create_demo_sim() -> CrowdSim {
@@ -34,7 +34,7 @@ fn create_demo_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 2.0);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
