@@ -140,6 +140,10 @@ pub mod simulator {
             }
         }
         
+        pub fn get_pedestrian_counts(&self) -> (usize, usize, usize) {
+            return (self.available_pedestrians.len(), self.active_pedestrians.len(), self.finished_pedestrians.len());
+        }
+        
         /// Draw this simulation with RayLib
         /// 
         /// * `rl_handle` - The RaylibDrawHandle used to draw the objects

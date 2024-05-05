@@ -14,6 +14,9 @@ pub mod pedestrian {
     /// The lower and upper bounds for the pedestrian target speeds to be selected from
     pub const PEDESTRIAN_TARGET_SPEED_BOUNDS: (f64, f64) = (1.2, 1.4);
     
+    /// The slowest a pedestrian will go when avoiding a collision or slowing for someone in front
+    pub const PEDESTRIAN_MINIMUM_SPEED: f64 = 0.4;
+    
     /// A multiplier applied to destination alignment
     const PEDESTRIAN_DIRECTION_CHANGE_FACTOR: f64 = 1.0;
     
@@ -25,13 +28,15 @@ pub mod pedestrian {
     
     /// The distance a pedestrian looks ahead for obstacles, in metres
     const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 2.0;
-    /// The distance a pedestrian looks ahead for obstacles, in metres
+    /// The distance a pedestrian looks side-to-side for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
-    /// The distance a pedestrian looks ahead for obstacles, in metres
+    /// The angle-range a pedestrian looks ahead for obstacles, in metres
     const PEDESTRIAN_LOOK_AHEAD_FOV: f64 = PI/2.0;
-    /// The distance a pedestrian looks ahead for obstacles, in metres
+    /// The angle-range a pedestrian looks side-to-side for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_FOV: f64 = PI/2.0;
+    /// The angle-range a pedestrian looks ahead to avoid imminent collisions, in metres
+    const PEDESTRIAN_COLLISION_AVOIDANCE_FOV: f64 = PI;
     
     /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front and travelling in the opposite direction
     const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.25;
@@ -106,7 +111,7 @@ pub mod pedestrian {
                 // Initially point towards destination
                 facing_direction: ((end_coords.1 - start_coords.1).atan2(end_coords.0 - start_coords.0) + TAU) % TAU,
                 target_speed,
-                inst_speed: 0.0,
+                inst_speed: PEDESTRIAN_MINIMUM_SPEED,
                 environment,
                 group,
                 target_location: end,
@@ -189,6 +194,9 @@ pub mod pedestrian {
                 // The direction the neighbour is in, between -π and π
                 let abs_neighbour_angle = (n_y - self.y).atan2(n_x - self.x);
                 
+                // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
+                
                 // Intersecting hitbox
                 if dist < 2.0*PEDESTRIAN_RADIUS {
                     //println!("Collision");
@@ -200,8 +208,16 @@ pub mod pedestrian {
                     self.x -= abs_neighbour_angle.cos() * k;
                     self.y -= abs_neighbour_angle.sin() * k;
                     
-                    // Set facing angle directly away from neighbour
-                    self.facing_direction = abs_neighbour_angle + PI;
+                    // Only stop & turn around if the oncoming pedestrian is within the frontal field of view
+                    if travel_rel_angle <= PEDESTRIAN_LOOK_AHEAD_FOV/2.0 || travel_rel_angle >= TAU-PEDESTRIAN_LOOK_AHEAD_FOV/2.0 {
+                        
+                        // Set facing angle directly away from neighbour
+                        self.facing_direction = abs_neighbour_angle + PI;
+                        
+                        // Set speed to 0
+                        self.inst_speed = 0.0;
+                        
+                    }
                     
                     // Set facing angle perpendicular to the direction toward the neighbour, depending on etiquette
                     //if self.etiquette == Etiquette::LeftBias {
@@ -213,11 +229,9 @@ pub mod pedestrian {
                     //    self.facing_direction = ((if rand::random::<f64>() > 0.5 {abs_neighbour_angle - PI/2.0} else {abs_neighbour_angle + PI/2.0}) + TAU) % TAU;
                     //}
                     
-                    // Set speed to 0
-                    self.inst_speed = 0.0;
                 }
                 
-                // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
+                // Recalculate relative neighbour direction
                 let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view to the right
@@ -283,13 +297,7 @@ pub mod pedestrian {
                         
                     } else {
                         // Moving same direction - reduce acceleration
-                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_ACCEL * time_scale / 2.0);
-                    }
-                    
-                    // Within personal space as well
-                    if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
-                        // Decelerate
-                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_OPPOSING_DECEL * time_scale);
+                        self.inst_speed = PEDESTRIAN_MINIMUM_SPEED.max(self.inst_speed - PEDESTRIAN_ACCEL * time_scale / 2.0);
                     }
                     
                 }
@@ -298,12 +306,28 @@ pub mod pedestrian {
                 if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
                     // Change the direction of travel to align better with the angle facing away from the neighbour
                     
-                    // The angle that points away from the neighbouring pedestrian, between 0 and 2π
-                    let away_angle = abs_neighbour_angle + PI;
-                    
-                    // Nudge the direction of travel away from the neighbour
-                    // Note that the intensity is inversely proportional to the separation distance
-                    self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale/dist);
+                    // Within the collision avoidance zone
+                    if travel_rel_angle <= PEDESTRIAN_COLLISION_AVOIDANCE_FOV/2.0 || travel_rel_angle >= TAU-PEDESTRIAN_COLLISION_AVOIDANCE_FOV/2.0 {
+                        // Decelerate
+                        self.inst_speed = PEDESTRIAN_MINIMUM_SPEED.max(self.inst_speed - PEDESTRIAN_OPPOSING_DECEL * time_scale);
+                        
+                        // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                        let away_angle = abs_neighbour_angle + PI;
+                        
+                        // Nudge the direction of travel away from the neighbour
+                        // Note that the intensity is inversely proportional to the separation distance
+                        self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale/dist);
+                        
+                    } else {
+                        
+                        // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                        let away_angle = abs_neighbour_angle + PI;
+                        
+                        // Nudge the direction of travel away from the neighbour
+                        // Note that the intensity is inversely proportional to the separation distance
+                        self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale/dist);
+                        
+                    }
                     
                 }
                 

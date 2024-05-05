@@ -34,17 +34,17 @@ fn create_demo_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 2.0);
     
     // Pedestrians moving left-to-right
-    crowd_simulation.add_pedestrian_set(10,0,Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian_set(12,0,Etiquette::NoBias);
-    crowd_simulation.add_pedestrian_set(1,0,Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(120,0,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(10,0,Etiquette::RightBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian_set(10,1,Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian_set(12,1,Etiquette::NoBias);
-    crowd_simulation.add_pedestrian_set(1,1,Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(120,1,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(10,1,Etiquette::RightBias);
     
     crowd_simulation.randomise_pedestrian_order();
     
@@ -86,6 +86,7 @@ fn main() {
         rl_handle.draw_text(&format!("Frame count: {}", frame_count), 12, 36, 20, Color::BLACK);
         rl_handle.draw_text(&format!("Frame time: {}ms", frame_time.as_millis()), 12, 60, 20, Color::BLACK);
         rl_handle.draw_text(&format!("Simulation time: {}s", (crowd_simulation.time_elapsed*100.0).round()/100.0), 12, 84, 20, Color::BLACK);
+        rl_handle.draw_text(&format!("Available/Active/Finished: {}/{}/{}", crowd_simulation.get_pedestrian_counts().0, crowd_simulation.get_pedestrian_counts().1, crowd_simulation.get_pedestrian_counts().2), 12, 108, 20, Color::BLACK);
         
         frame_count += 1;
     }
