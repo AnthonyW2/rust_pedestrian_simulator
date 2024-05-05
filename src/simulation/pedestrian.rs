@@ -78,6 +78,11 @@ pub mod pedestrian {
         /// The ID of the target location that the pedestrian walks towards
         target_location: usize,
         
+        /// Whether or not each timing boundary has been hit
+        timing_boundary_states: Vec<bool>,
+        /// The time since passing the first timing boundary
+        timing_boundary_elapsed: Option<f64>,
+        
         /// The tested behavioural rule that this pedestrian follows
         etiquette: Etiquette
     }
@@ -87,16 +92,22 @@ pub mod pedestrian {
         /// 
         /// * `area` - A `SimArea` object describing the space for the simulation to be set in.
         pub fn new(environment: Arc<SimArea>, group: usize, start: usize, end: usize, target_speed: f64, etiquette: Etiquette) -> Walker {
+            let timing_boundary_count = environment.timing_boundaries.len();
+            let start_coords = environment.start_positions[group][start];
+            let end_coords = environment.end_positions[group][end];
+            
             Walker {
-                x: environment.start_positions[group][start].0,
-                y: environment.start_positions[group][start].1,
+                x: start_coords.0,
+                y: start_coords.1,
                 // Initially point towards destination
-                facing_direction: ((environment.end_positions[group][end].1 - environment.start_positions[group][start].1).atan2(environment.end_positions[group][end].0 - environment.start_positions[group][start].0) + TAU) % TAU,
+                facing_direction: ((end_coords.1 - start_coords.1).atan2(end_coords.0 - start_coords.0) + TAU) % TAU,
                 target_speed,
                 inst_speed: 0.0,
                 environment,
                 group,
                 target_location: end,
+                timing_boundary_states: vec![false; timing_boundary_count],
+                timing_boundary_elapsed: None,
                 etiquette
             }
         }
@@ -142,6 +153,9 @@ pub mod pedestrian {
             self.y += self.inst_speed * self.facing_direction.sin() * time_scale;
             
             self.resolve_wall_collisions(time_scale);
+            
+            
+            self.check_timing_boundaries(time_scale);
             
         }
         
@@ -357,6 +371,38 @@ pub mod pedestrian {
         /// Return destination coordinates
         pub fn get_dest_coords(&self) -> (f64, f64) {
             return self.environment.end_positions[self.group][self.target_location];
+        }
+        
+        /// Check for collisions with timing boundaries, and log the time taken to travel between two of them
+        fn check_timing_boundaries(&mut self, time_scale: f64) {
+            
+            // Increment time elapsed
+            if self.timing_boundary_elapsed.is_some() {
+                self.timing_boundary_elapsed = Some(self.timing_boundary_elapsed.unwrap() + time_scale);
+            }
+            
+            let mut touched_boundary_count = 0;
+            
+            // Check each timing boundary
+            for (i, wall) in self.environment.timing_boundaries.iter().enumerate() {
+                
+                if !self.timing_boundary_states[i] && wall.get_normal_vector((self.x, self.y)).0 <= PEDESTRIAN_RADIUS {
+                    self.timing_boundary_states[i] = true;
+                    if self.timing_boundary_elapsed.is_none() {
+                        self.timing_boundary_elapsed = Some(0.0);
+                    }
+                    touched_boundary_count += 1;
+                } else if self.timing_boundary_states[i] {
+                    touched_boundary_count += 1;
+                }
+                
+            }
+            
+            if self.timing_boundary_elapsed.is_some() && touched_boundary_count == 2 {
+                println!("Time: {}s, Group: {}", (self.timing_boundary_elapsed.unwrap()*100.0).round()/100.0, self.group);
+                self.timing_boundary_elapsed = None;
+            }
+            
         }
         
         /// Draw this pedestrian with RayLib

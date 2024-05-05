@@ -172,6 +172,12 @@ pub mod simulator {
             self.end_positions.push(ends);
         }
         
+        pub fn add_timing_boundary(&mut self, point1: (f64, f64), point2: (f64, f64)) {
+            self.timing_boundaries.push(
+                Wall::new(point1.0, point1.1, point2.0, point2.1)
+            );
+        }
+        
         /// Draw this environment with RayLib
         pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
             
@@ -200,7 +206,7 @@ pub mod simulator {
             
             // Draw the walls
             for wall in &self.boundaries {
-                wall.draw(rl_handle, offset);
+                wall.draw(rl_handle, offset, Color::from_hex("000000").unwrap());
             }
             
             // Draw the start & end points
@@ -228,6 +234,11 @@ pub mod simulator {
                     (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
                     Color::fade(&Color::from_hex("005de9").unwrap(), 0.2)
                 );
+            }
+            
+            // Draw the timing boundaries
+            for wall in &self.timing_boundaries {
+                wall.draw(rl_handle, offset, Color::from_hex("008080").unwrap());
             }
             
         }
@@ -299,14 +310,14 @@ pub mod simulator {
         }
         
         /// Draw this wall with RayLib
-        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), color: impl Into<raylib::ffi::Color>) {
             
             rl_handle.draw_line(
                 offset.0 + DRAW_SCALE*(self.x1 as i32),
                 offset.1 + DRAW_SCALE*(self.y1 as i32),
                 offset.0 + DRAW_SCALE*(self.x2 as i32),
                 offset.1 + DRAW_SCALE*(self.y2 as i32),
-                Color::from_hex("000000").unwrap()
+                color
             );
             
         }

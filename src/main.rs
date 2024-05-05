@@ -20,18 +20,18 @@ fn create_demo_sim() -> CrowdSim {
     simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
     
     // Timing barriers
-    simulated_area_1.add_wall((3.0,6.0), (3.0,8.0));
-    simulated_area_1.add_wall((28.0,6.0), (28.0,8.0));
+    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
+    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
     
     // Start & end group moving left-to-right
     simulated_area_1.add_start_end_group(
         vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
-        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
+        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
     );
     // Start & end group moving right-to-left
     simulated_area_1.add_start_end_group(
         vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
-        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
+        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
     let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 2.0);
