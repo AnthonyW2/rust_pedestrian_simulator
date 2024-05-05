@@ -12,7 +12,7 @@ pub mod simulator {
     pub const TARGET_LOCATION_RADIUS: f64 = 1.5;
     
     /// How many pixels in a metre
-    pub const DRAW_SCALE: i32 = 50;
+    pub const DRAW_SCALE: i32 = 40;
     
     /// Contains all information related to a crowd simulation
     pub struct CrowdSim {
@@ -34,7 +34,8 @@ pub mod simulator {
     pub struct SimArea {
         pub boundaries: Vec<Wall>,
         pub start_positions: Vec<Vec<(f64, f64)>>,
-        pub end_positions: Vec<Vec<(f64, f64)>>
+        pub end_positions: Vec<Vec<(f64, f64)>>,
+        pub timing_boundaries: Vec<Wall>
     }
     
     /// Describes an impassable linear barrier with a start and end point
@@ -155,7 +156,8 @@ pub mod simulator {
             SimArea {
                 boundaries: Vec::new(),
                 start_positions: Vec::new(),
-                end_positions: Vec::new()
+                end_positions: Vec::new(),
+                timing_boundaries: Vec::new()
             }
         }
         

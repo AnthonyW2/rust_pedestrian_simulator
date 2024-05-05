@@ -43,9 +43,9 @@ pub mod pedestrian {
     const WALL_REPULSION: f64 = 0.2;
     
     /// Intensity of random noise added to pedestrian speed
-    const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.6;
+    const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.8;
     /// Intensity of random noise added to pedestrian facing direction
-    const PEDESTRIAN_DIRECTION_NOISE_FACTOR: f64 = 0.3;
+    const PEDESTRIAN_DIRECTION_NOISE_FACTOR: f64 = 0.4;
     
     /// Intensity of bias (to facing direction) caused by Etiquette::LEFT_BIAS or Etiquette::RIGHT_BIAS
     const PEDESTRIAN_ETIQUETTE_BIAS_FACTOR: f64 = 0.25;
@@ -265,7 +265,7 @@ pub mod pedestrian {
                         
                     } else {
                         // Moving same direction - reduce acceleration
-                        self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
+                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_ACCEL * time_scale / 2.0);
                     }
                     
                     // Within personal space as well
@@ -324,8 +324,21 @@ pub mod pedestrian {
                     self.x += normal.0 * k;
                     self.y += normal.1 * k;
                     
-                    // Nudge the direction of travel away from the wall (in 1 second the pedestrian will face directly away from the wall)
-                    self.facing_direction = nudge_angle(self.facing_direction, normal_angle, time_scale);
+                    
+                    // The angle the pedestrian should be facing to reach their destination (between 0 and 2π)
+                    let target_angle = (self.environment.end_positions[self.group][self.target_location].1 - self.y).atan2(self.environment.end_positions[self.group][self.target_location].0 - self.x);
+                    
+                    // Find the difference between the direction of travel and the target direction
+                    let direction_difference = (target_angle - self.facing_direction + TAU + TAU) % TAU;
+                    if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
+                        // Facing away from target
+                        // Need to face away from wall
+                        self.facing_direction = normal_angle;
+                    } else {
+                        // Facing toward target
+                        // Nudge the direction of travel away from the wall
+                        self.facing_direction = nudge_angle(self.facing_direction, normal_angle, time_scale);
+                    }
                     
                 }
                 
