@@ -26,15 +26,15 @@ pub mod pedestrian {
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
     /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front
-    const PEDESTRIAN_AHEAD_REPULSION: f64 = 0.2;
+    //const PEDESTRIAN_AHEAD_REPULSION: f64 = 0.2;
     /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front and travelling in the opposite direction
-    const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.2;
+    const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.25;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius
-    const PEDESTRIAN_PSPACE_REPULSION: f64 = 0.2;
+    const PEDESTRIAN_PSPACE_REPULSION: f64 = 0.3;
     
     /// The intensity of repulsion from a wall within the personal space radius
-    const WALL_DIRECTION_REPULSION: f64 = 0.1;
+    const WALL_REPULSION: f64 = 0.1;
     
     /// Intensity of random noise added to pedestrian speed
     const PEDESTRIAN_SPEED_NOISE_FACTOR: f64 = 0.6;
@@ -47,9 +47,9 @@ pub mod pedestrian {
     // Etiquette option enum
     #[derive(PartialEq)]
     pub enum Etiquette {
-        LeftBias,  // Stay to the left
-        RightBias, // Stay to the right
-        DirectDest // Walk directly towards the destination
+        LeftBias,   // Stay to the left
+        RightBias,  // Stay to the right
+        NoBias      // Walk directly towards the destination
     }
     
     pub struct Walker {
@@ -190,15 +190,30 @@ pub mod pedestrian {
                     
                     if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
                         // Oncoming
-                        //println!("Oncoming detected");
-                        //self.inst_speed -= PEDESTRIAN_ACCEL*time_scale;
-                        
                         if self.etiquette == Etiquette::LeftBias {
+                            // Apply bias
+                            self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                            
+                            // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                            let away_angle = abs_neighbour_angle + PI;
+                            
+                            // Nudge the direction of travel away from the neighbour
+                            self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_OPPOSING_REPULSION*time_scale);
                             
                         } else if self.etiquette == Etiquette::RightBias {
+                            // Apply bias
+                            self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                            
+                            // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                            let away_angle = abs_neighbour_angle + PI;
+                            
+                            // Nudge the direction of travel away from the neighbour
+                            self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_OPPOSING_REPULSION*time_scale);
                             
                         } else {
-                            
+                            // No directional bias
+                            // Slow down a bit
+                            self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
                         }
                         
                     } else {
@@ -213,12 +228,18 @@ pub mod pedestrian {
                 
                 // Within view to the right
                 if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
-                    
+                    // Reduce right-bias
+                    if self.etiquette == Etiquette::RightBias {
+                        self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                    }
                 }
                 
                 // Within view to the left
                 if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
-                    
+                    // Reduce left-bias
+                    if self.etiquette == Etiquette::LeftBias {
+                        self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                    }
                 }
                 
                 // Within personal space
@@ -229,7 +250,8 @@ pub mod pedestrian {
                     let away_angle = abs_neighbour_angle + PI;
                     
                     // Nudge the direction of travel away from the neighbour
-                    self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale);
+                    // Note that the intensity is inversely proportional to the separation distance
+                    self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale/dist);
                     
                 }
                 
