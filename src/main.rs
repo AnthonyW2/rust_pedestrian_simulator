@@ -39,7 +39,7 @@ fn create_demo_sim() -> CrowdSim {
     crowd_simulation.add_pedestrian(0, 2, 1, 2.0,  Etiquette::LeftBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian(1, 3, 4, 1.35, Etiquette::RightBias);
+    crowd_simulation.add_pedestrian(1, 3, 4, 1.35, Etiquette::NoBias);
     crowd_simulation.add_pedestrian(1, 0, 2, 1.35, Etiquette::NoBias);
     crowd_simulation.add_pedestrian(1, 1, 0, 1.35, Etiquette::NoBias);
     crowd_simulation.add_pedestrian(1, 2, 0, 1.35, Etiquette::NoBias);

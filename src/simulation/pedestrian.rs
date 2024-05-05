@@ -25,13 +25,19 @@ pub mod pedestrian {
     /// The distance a pedestrian looks ahead for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
-    /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front
-    //const PEDESTRIAN_AHEAD_REPULSION: f64 = 0.2;
+    /// The distance a pedestrian looks ahead for obstacles, in metres
+    const PEDESTRIAN_LOOK_AHEAD_FOV: f64 = PI/2.0;
+    /// The distance a pedestrian looks ahead for obstacles, in metres
+    const PEDESTRIAN_LOOK_BESIDE_FOV: f64 = PI/2.0;
+    
     /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front and travelling in the opposite direction
     const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.25;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius
     const PEDESTRIAN_PSPACE_REPULSION: f64 = 0.3;
+    
+    /// The deceleration of a pedestrian when another pedestrian is oncoming
+    const PEDESTRIAN_OPPOSING_DECEL: f64 = PEDESTRIAN_ACCEL * 1.5;
     
     /// The intensity of repulsion from a wall within the personal space radius
     const WALL_REPULSION: f64 = 0.2;
@@ -103,16 +109,8 @@ pub mod pedestrian {
         pub fn simulate_timestep(&mut self, time_scale: f64, other_pedestrians_before: &[(f64, f64, f64)], other_pedestrians_after: &[(f64, f64, f64)]) {
             //println!("Simulating one pedestrian timestep...");
             
-            // Find the distance and normal vector to each wall/boundary in the simulation
-            //let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
-            
             // Apply acceleration/deceleration to change velocity
-            if self.inst_speed < self.target_speed {
-                self.inst_speed += PEDESTRIAN_ACCEL * time_scale;
-            }
-            if self.inst_speed > self.target_speed {
-                self.inst_speed = self.target_speed;
-            }
+            self.inst_speed = self.target_speed.min(self.inst_speed + PEDESTRIAN_ACCEL * time_scale);
             
             // Coordinates of the destination
             let target_x = self.environment.end_positions[self.group][self.target_location].0;
@@ -154,14 +152,17 @@ pub mod pedestrian {
             
             // Iterate through all neighbouring pedestrians and check for front-on collisions and side collisions.
             
-            /*
-             * Collision resolution applied first, then actions applied in reverse order of importance (most important action last)
-             * If a pedestrian in front is walking in the same direction: slow down, do not change direction.
-             * If a pedestrian in front is walking in the opposite direction:
-             * * Slow down, and:
-             * * If this pedestrian is left- or right-biased, turn left or right respectively.
-             * * Otherwise choose the direction away from the opposing pedestrian.
-             * If a pedestrian is to the left or right: angle slightly away from them.
+            /* How this method works:
+             * Resolve collisions between pedestrians.
+             * * Move them apart so that hey are no longer touching.
+             * * Change direction of travel so that they are travelling perpendicular to the other pedestrian.
+             * * Reduce speed to 0.
+             * If a pedestrian is to the right or left: cancel right or left bias effects.
+             * If a pedestrian is in front:
+             * * If they are walking in the opposite direction:
+             * * * Move the direction of travel away from the oncoming pedestrian - either towards the perpendicular or towards the normal.
+             * * If they are walking in the same direction, reduce acceleration.
+             * * If they are also within the personal space radius, decelerate.
              */
             
             for (n_x, n_y, n_dir) in other_pedestrians {
@@ -178,11 +179,21 @@ pub mod pedestrian {
                     let k = 2.0*PEDESTRIAN_RADIUS - dist;
                     
                     // Move the pedestrian away from its neighbour
-                    self.x -= abs_neighbour_angle.cos() * k * 0.5;
-                    self.y -= abs_neighbour_angle.sin() * k * 0.5;
+                    self.x -= abs_neighbour_angle.cos() * k;
+                    self.y -= abs_neighbour_angle.sin() * k;
                     
-                    // Set facig angle directly away from neighbour
+                    // Set facing angle directly away from neighbour
                     self.facing_direction = abs_neighbour_angle + PI;
+                    
+                    // Set facing angle perpendicular to the direction toward the neighbour, depending on etiquette
+                    //if self.etiquette == Etiquette::LeftBias {
+                    //    self.facing_direction = (abs_neighbour_angle - PI/2.0 + TAU) % TAU;
+                    //} else if self.etiquette == Etiquette::RightBias {
+                    //    self.facing_direction = (abs_neighbour_angle + PI/2.0 + TAU) % TAU;
+                    //} else {
+                    //    // Random direction
+                    //    self.facing_direction = ((if rand::random::<f64>() > 0.5 {abs_neighbour_angle - PI/2.0} else {abs_neighbour_angle + PI/2.0}) + TAU) % TAU;
+                    //}
                     
                     // Set speed to 0
                     self.inst_speed = 0.0;
@@ -192,7 +203,7 @@ pub mod pedestrian {
                 let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view to the right
-                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PEDESTRIAN_LOOK_AHEAD_FOV/2.0 && travel_rel_angle < PEDESTRIAN_LOOK_AHEAD_FOV/2.0 + PEDESTRIAN_LOOK_BESIDE_FOV {
                     // Cancel right-bias
                     if self.etiquette == Etiquette::RightBias {
                         self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
@@ -200,7 +211,7 @@ pub mod pedestrian {
                 }
                 
                 // Within view to the left
-                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle < TAU-PEDESTRIAN_LOOK_AHEAD_FOV/2.0 && travel_rel_angle > TAU-(PEDESTRIAN_LOOK_AHEAD_FOV/2.0 + PEDESTRIAN_LOOK_BESIDE_FOV) {
                     // Cancel left-bias
                     if self.etiquette == Etiquette::LeftBias {
                         self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
@@ -211,27 +222,30 @@ pub mod pedestrian {
                 let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view in front
-                if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS && (travel_rel_angle <= PI/4.0 || travel_rel_angle >= 7.0*PI/4.0) {
+                if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS && (travel_rel_angle <= PEDESTRIAN_LOOK_AHEAD_FOV/2.0 || travel_rel_angle >= TAU-PEDESTRIAN_LOOK_AHEAD_FOV/2.0) {
                     let direction_difference = (self.facing_direction - n_dir + TAU) % TAU;
                     
                     if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
                         // Oncoming
+                        
                         if self.etiquette == Etiquette::LeftBias {
                             // Apply bias
-                            self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                            //self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
                             
                             // The angle that points away from the neighbouring pedestrian, between 0 and 2π
-                            let away_angle = abs_neighbour_angle + PI;
+                            //let away_angle = abs_neighbour_angle + PI;
+                            let away_angle = (abs_neighbour_angle - PI/2.0 + TAU) % TAU;
                             
                             // Nudge the direction of travel away from the neighbour
                             self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_OPPOSING_REPULSION*time_scale);
                             
                         } else if self.etiquette == Etiquette::RightBias {
                             // Apply bias
-                            self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                            //self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
                             
                             // The angle that points away from the neighbouring pedestrian, between 0 and 2π
-                            let away_angle = abs_neighbour_angle + PI;
+                            //let away_angle = abs_neighbour_angle + PI;
+                            let away_angle = (abs_neighbour_angle + PI/2.0 + TAU) % TAU;
                             
                             // Nudge the direction of travel away from the neighbour
                             self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_OPPOSING_REPULSION*time_scale);
@@ -251,14 +265,13 @@ pub mod pedestrian {
                         
                     } else {
                         // Moving same direction - reduce acceleration
-                        //println!("Behind pedestrian");
                         self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
                     }
                     
                     // Within personal space as well
                     if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
-                        // Slow down
-                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_ACCEL*time_scale);
+                        // Decelerate
+                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_OPPOSING_DECEL * time_scale);
                     }
                     
                 }
@@ -340,8 +353,8 @@ pub mod pedestrian {
             rl_handle.draw_circle_sector(
                 Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
                 (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_AHEAD_RADIUS as f32),
-                ((-self.facing_direction + PI/4.0)/TAU*360.0) as f32,
-                ((-self.facing_direction + 3.0*PI/4.0)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                 10,
                 Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
             );
@@ -350,16 +363,16 @@ pub mod pedestrian {
             rl_handle.draw_circle_sector(
                 Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
                 (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
-                ((-self.facing_direction - PI/4.0)/TAU*360.0) as f32,
-                ((-self.facing_direction + PI/4.0)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0 + PEDESTRIAN_LOOK_BESIDE_FOV)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                 10,
                 Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
             );
             rl_handle.draw_circle_sector(
                 Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
                 (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
-                ((-self.facing_direction - 3.0*PI/4.0)/TAU*360.0) as f32,
-                ((-self.facing_direction - 5.0*PI/4.0)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
+                ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0 - PEDESTRIAN_LOOK_BESIDE_FOV)/TAU*360.0) as f32,
                 10,
                 Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
             );
