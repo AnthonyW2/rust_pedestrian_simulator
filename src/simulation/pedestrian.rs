@@ -169,8 +169,6 @@ pub mod pedestrian {
                 
                 // The direction the neighbour is in, between -π and π
                 let abs_neighbour_angle = (n_y - self.y).atan2(n_x - self.x);
-                // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
-                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Intersecting hitbox
                 if dist < 2.0*PEDESTRIAN_RADIUS {
@@ -179,10 +177,19 @@ pub mod pedestrian {
                     // Compute the overlap between the two pedestrians
                     let k = 2.0*PEDESTRIAN_RADIUS - dist;
                     
-                    // Move the pedestrian away from the wall
+                    // Move the pedestrian away from its neighbour
                     self.x -= abs_neighbour_angle.cos() * k * 0.5;
                     self.y -= abs_neighbour_angle.sin() * k * 0.5;
+                    
+                    // Set facig angle directly away from neighbour
+                    self.facing_direction = abs_neighbour_angle + PI;
+                    
+                    // Set speed to 0
+                    self.inst_speed = 0.0;
                 }
+                
+                // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view in front
                 if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS && (travel_rel_angle <= PI/4.0 || travel_rel_angle >= 7.0*PI/4.0) {
@@ -192,7 +199,7 @@ pub mod pedestrian {
                         // Oncoming
                         if self.etiquette == Etiquette::LeftBias {
                             // Apply bias
-                            self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                            self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
                             
                             // The angle that points away from the neighbouring pedestrian, between 0 and 2π
                             let away_angle = abs_neighbour_angle + PI;
@@ -202,7 +209,7 @@ pub mod pedestrian {
                             
                         } else if self.etiquette == Etiquette::RightBias {
                             // Apply bias
-                            self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+                            self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
                             
                             // The angle that points away from the neighbouring pedestrian, between 0 and 2π
                             let away_angle = abs_neighbour_angle + PI;
@@ -224,28 +231,35 @@ pub mod pedestrian {
                         }
                         
                     } else {
-                        // Moving same direction - slow down a little bit
+                        // Moving same direction - reduce acceleration
                         //println!("Behind pedestrian");
                         self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
                     }
                     
+                    // Within personal space as well
+                    if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
+                        // Slow down
+                        self.inst_speed = 0f64.max(self.inst_speed - PEDESTRIAN_ACCEL*time_scale);
+                    }
+                    
                 }
                 
-                // NOTE: angles may need to be re-calculated
+                // Recalculate relative neighbour direction
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Within view to the right
                 if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
-                    // Reduce right-bias
+                    // Cancel right-bias
                     if self.etiquette == Etiquette::RightBias {
-                        self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                        self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
                     }
                 }
                 
                 // Within view to the left
                 if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
-                    // Reduce left-bias
+                    // Cancel left-bias
                     if self.etiquette == Etiquette::LeftBias {
-                        self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale / 2.0;
+                        self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
                     }
                 }
                 
