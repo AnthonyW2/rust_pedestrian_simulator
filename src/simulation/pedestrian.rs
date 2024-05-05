@@ -2,7 +2,7 @@ pub mod pedestrian {
     
     use std::f64::consts::{PI, TAU};
     use std::sync::Arc;
-    use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
+    use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color, math::Vector2};
     use rand;
     
     use crate::simulation::simulator::simulator::{SimArea, DRAW_SCALE};
@@ -15,12 +15,15 @@ pub mod pedestrian {
     const PEDESTRIAN_DIRECTION_CHANGE_FACTOR: f64 = 1.0;
     
     /// The radius of a pedestrian's body, in metres
-    const PEDESTRIAN_RADIUS: f64 = 0.4;
+    const PEDESTRIAN_RADIUS: f64 = 0.205;
+    
+    /// Personal space: compressible radius of collision-avoidance, in metres
+    const PEDESTRIAN_PSPACE_RADIUS: f64 = 0.856;
     
     /// The distance a pedestrian looks ahead for obstacles, in metres
-    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 1.0;
+    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 1.5;
     /// The distance a pedestrian looks ahead for obstacles, in metres
-    const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 0.8;
+    const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
     const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
@@ -112,7 +115,8 @@ pub mod pedestrian {
             self.facing_direction = nudge_angle(self.facing_direction, target_angle, PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale);
             
             
-            self.react_to_neighbours(other_pedestrians_before, other_pedestrians_after);
+            self.react_to_neighbours(time_scale, other_pedestrians_after);
+            self.react_to_neighbours(time_scale, other_pedestrians_before);
             
             self.apply_noise(time_scale);
             
@@ -126,11 +130,14 @@ pub mod pedestrian {
         }
         
         /// React to neighbouring pedestrians, considering specific etiquette rules
-        fn react_to_neighbours(&mut self, other_pedestrians_before: &[(f64, f64, f64)], other_pedestrians_after: &[(f64, f64, f64)]) {
+        /// 
+        /// * `other_pedestrians` - [(x, y, direction)]
+        fn react_to_neighbours(&mut self, time_scale: f64, other_pedestrians: &[(f64, f64, f64)]) {
             
             // Iterate through all neighbouring pedestrians and check for front-on collisions and side collisions.
             
             /*
+             * Collision resolution applied first, then actions applied in reverse order of importance (most important action last)
              * If a pedestrian in front is walking in the same direction: slow down, do not change direction.
              * If a pedestrian in front is walking in the opposite direction:
              * * Slow down, and:
@@ -139,49 +146,61 @@ pub mod pedestrian {
              * If a pedestrian is to the left or right: angle slightly away from them.
              */
             
-            // Check yet-to-be-simulated pedestrineighboursans first
-            for (n_dir, n_x, n_y) in other_pedestrians_after {
+            for (n_x, n_y, n_dir) in other_pedestrians {
                 let dist = ((self.x - n_x)*(self.x - n_x) + (self.y - n_y)*(self.y - n_y)).sqrt();
                 
                 // The direction the neighbour is in
-                let abs_neighbour_angle = (self.y - n_y).atan2(self.x - n_x);
+                let abs_neighbour_angle = (n_y - self.y).atan2(n_x - self.x);
                 // The direction the neighbour is in, relative to the direction of travel of this pedestrian
-                let travel_rel_angle = (self.facing_direction - abs_neighbour_angle + TAU) % TAU;
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU) % TAU;
+                
+                // Intersecting hitbox
+                if dist < 2.0*PEDESTRIAN_RADIUS {
+                    //println!("Intersection");
+                    
+                    // Compute the overlap between the two pedestrians
+                    let k = 2.0*PEDESTRIAN_RADIUS - dist;
+                    
+                    // Move the pedestrian away from the wall
+                    self.x -= abs_neighbour_angle.cos() * k * 0.5;
+                    self.y -= abs_neighbour_angle.sin() * k * 0.5;
+                }
                 
                 // Within view in front
-                if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS {
+                if dist < PEDESTRIAN_LOOK_AHEAD_RADIUS && (travel_rel_angle <= PI/4.0 || travel_rel_angle >= 7.0*PI/4.0) {
+                    let direction_difference = (self.facing_direction - n_dir + TAU) % TAU;
+                    
+                    if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
+                        // Oncoming
+                        //println!("Oncoming detected");
+                        //self.inst_speed -= PEDESTRIAN_ACCEL*time_scale;
+                        
+                    } else {
+                        // Moving same direction - slow down
+                        //println!("Behind pedestrian");
+                        //self.inst_speed -= PEDESTRIAN_ACCEL*time_scale;
+                    }
                     
                 }
                 
-                // In front
-                if travel_rel_angle <= PI/4.0 || travel_rel_angle >= 7.0*PI/4.0 {
+                // NOTE: angles may need to be re-calculated
+                
+                // Within view to the right
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
                     
                 }
                 
-                // Right
-                if travel_rel_angle > PI/4.0 && travel_rel_angle < 3.0*PI/4.0 {
+                // Within view to the left
+                if dist < PEDESTRIAN_LOOK_BESIDE_RADIUS && travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
                     
                 }
                 
-                // Left
-                if travel_rel_angle > 5.0*PI/4.0 && travel_rel_angle < 7.0*PI/4.0 {
+                // Within personal space
+                if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
                     
                 }
                 
-                let direction_difference = (self.facing_direction - n_dir + TAU) % TAU;
-                
-                if direction_difference > PI/2.0 && direction_difference < 3.0*PI/2.0 {
-                    // Oncoming
-                    
-                } else {
-                    // Moving same direction
-                    
-                }
             }
-            
-            // Check already-simulated pedestrians next
-            
-            
             
         }
         
@@ -235,6 +254,44 @@ pub mod pedestrian {
         /// Draw this pedestrian with RayLib
         pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
             
+            // Look-ahead zone
+            rl_handle.draw_circle_sector(
+                Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
+                (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_AHEAD_RADIUS as f32),
+                ((-self.facing_direction + PI/4.0)/TAU*360.0) as f32,
+                ((-self.facing_direction + 3.0*PI/4.0)/TAU*360.0) as f32,
+                10,
+                Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+            );
+            
+            // Look-beside zone
+            rl_handle.draw_circle_sector(
+                Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
+                (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
+                ((-self.facing_direction - PI/4.0)/TAU*360.0) as f32,
+                ((-self.facing_direction + PI/4.0)/TAU*360.0) as f32,
+                10,
+                Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+            );
+            rl_handle.draw_circle_sector(
+                Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
+                (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
+                ((-self.facing_direction - 3.0*PI/4.0)/TAU*360.0) as f32,
+                ((-self.facing_direction - 5.0*PI/4.0)/TAU*360.0) as f32,
+                10,
+                Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+            );
+            
+            // Personal space
+            rl_handle.draw_ellipse(
+                offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
+                (DRAW_SCALE as f32) * (PEDESTRIAN_PSPACE_RADIUS as f32),
+                (DRAW_SCALE as f32) * (PEDESTRIAN_PSPACE_RADIUS as f32),
+                Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+            );
+            
+            // Collision hitbox
             rl_handle.draw_ellipse(
                 offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
                 offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
@@ -280,9 +337,6 @@ pub mod pedestrian {
         
         // Constrain angle_diff between -π and π
         angle_diff = if angle_diff > PI {angle_diff - TAU} else {angle_diff};
-        //if angle_diff > PI {
-        //    angle_diff -= TAU;
-        //}
         
         // Return the new angle
         return (initial_angle - angle_diff*nudge_ratio + TAU) % TAU;

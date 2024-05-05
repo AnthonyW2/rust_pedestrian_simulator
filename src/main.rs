@@ -8,7 +8,7 @@ use simulation::simulator::simulator::{SimArea, CrowdSim};
 use simulation::pedestrian::pedestrian::Etiquette;
 
 
-const SIM_SPEED: f64 = 4.0;
+const SIM_SPEED: f64 = 1.0;
 
 /// Create a simple demonstration & debugging simulation
 fn create_demo_sim() -> CrowdSim {
@@ -28,8 +28,10 @@ fn create_demo_sim() -> CrowdSim {
     crowd_simulation.add_pedestrian(0, 1, 0, 1.35, Etiquette::DIRECT_DEST);
     crowd_simulation.add_pedestrian(0, 2, 0, 1.35, Etiquette::DIRECT_DEST);
     crowd_simulation.add_pedestrian(0, 2, 1, 1.35, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 2, 1, 2.5, Etiquette::DIRECT_DEST);
+    crowd_simulation.add_pedestrian(0, 2, 1, 2.0, Etiquette::DIRECT_DEST);
     
-    crowd_simulation.randomise_pedestrian_order();
+    //crowd_simulation.randomise_pedestrian_order();
     
     return crowd_simulation;
     
