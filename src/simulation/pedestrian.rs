@@ -11,6 +11,9 @@ pub mod pedestrian {
     /// The acceleration of a pedestrian, in m⋅s^-2
     const PEDESTRIAN_ACCEL: f64 = 0.8;
     
+    /// The lower and upper bounds for the pedestrian target speeds to be selected from
+    pub const PEDESTRIAN_TARGET_SPEED_BOUNDS: (f64, f64) = (1.2, 1.4);
+    
     /// A multiplier applied to destination alignment
     const PEDESTRIAN_DIRECTION_CHANGE_FACTOR: f64 = 1.0;
     
@@ -52,6 +55,7 @@ pub mod pedestrian {
     
     // Etiquette option enum
     #[derive(PartialEq)]
+    #[derive(Clone)]
     pub enum Etiquette {
         LeftBias,   // Stay to the left
         RightBias,  // Stay to the right

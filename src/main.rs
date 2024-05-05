@@ -8,7 +8,7 @@ use simulation::simulator::simulator::{SimArea, CrowdSim};
 use simulation::pedestrian::pedestrian::Etiquette;
 
 
-const SIM_SPEED: f64 = 1.0;
+const SIM_SPEED: f64 = 4.0;
 
 /// Create a simple demonstration & debugging simulation
 fn create_demo_sim() -> CrowdSim {
@@ -34,23 +34,17 @@ fn create_demo_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 2.0);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
     
     // Pedestrians moving left-to-right
-    crowd_simulation.add_pedestrian(0, 0, 1, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(0, 2, 0, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(0, 4, 2, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(0, 3, 2, 1.35, Etiquette::NoBias);
-    crowd_simulation.add_pedestrian(0, 1, 4, 1.35, Etiquette::NoBias);
-    crowd_simulation.add_pedestrian(0, 2, 3, 1.35, Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(10,0,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(12,0,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(1,0,Etiquette::RightBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian(1, 2, 3, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(1, 1, 4, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(1, 1, 3, 1.35, Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian(1, 3, 0, 1.35, Etiquette::NoBias);
-    crowd_simulation.add_pedestrian(1, 4, 1, 1.35, Etiquette::NoBias);
-    crowd_simulation.add_pedestrian(1, 0, 2, 1.35, Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(10,1,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(12,1,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(1,1,Etiquette::RightBias);
     
     crowd_simulation.randomise_pedestrian_order();
     

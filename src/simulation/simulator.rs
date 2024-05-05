@@ -2,7 +2,7 @@ pub mod simulator {
     
     use std::sync::Arc;
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color};
-    use rand::{thread_rng, seq::SliceRandom};
+    use rand::{thread_rng, seq::SliceRandom, Rng, distributions::Uniform};
     
     use crate::simulation::pedestrian::pedestrian;
     //use crate::simulation::pedestrian::pedestrian::Walker;
@@ -90,11 +90,16 @@ pub mod simulator {
             
         }
         
-        /// Add pedestrians to the simulation, with behaviours that are chosen with weighted random choices
-        pub fn add_pedestrian_set(&mut self, number: usize, group: usize, behaviour: usize) {
+        /// Add pedestrians to the simulation in bulk
+        pub fn add_pedestrian_set(&mut self, number: usize, group: usize, etiquette: pedestrian::Etiquette) {
+            
+            let mut rng = thread_rng();
             
             for _ in 0..number {
-                
+                let start = rng.sample(Uniform::new(0,self.area.start_positions[group].len()));
+                let end = rng.sample(Uniform::new(0,self.area.end_positions[group].len()));
+                let target_speed = pedestrian::PEDESTRIAN_TARGET_SPEED_BOUNDS.0 + rand::random::<f64>() * (pedestrian::PEDESTRIAN_TARGET_SPEED_BOUNDS.1 - pedestrian::PEDESTRIAN_TARGET_SPEED_BOUNDS.0);
+                self.add_pedestrian(group, start, end, target_speed, etiquette.clone())
             }
             
         }
