@@ -11,7 +11,7 @@ pub mod pedestrian {
     /// The acceleration of a pedestrian, in m⋅s^-2
     const PEDESTRIAN_ACCEL: f64 = 0.8;
     
-    /// A multiplier applied to the direction alignment function
+    /// A multiplier applied to destination alignment
     const PEDESTRIAN_DIRECTION_CHANGE_FACTOR: f64 = 1.0;
     
     /// The radius of a pedestrian's body, in metres
@@ -25,10 +25,15 @@ pub mod pedestrian {
     /// The distance a pedestrian looks ahead for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
-    /// The speed at which a pedestrian changes its facing direction when within the personal space radius, in radians per second.
-    const PEDESTRIAN_DIRECTION_REPULSION: f64 = 0.5;
+    /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front
+    const PEDESTRIAN_AHEAD_REPULSION: f64 = 0.2;
+    /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front and travelling in the opposite direction
+    const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.2;
     
-    /// The intensity of repulsion from a wall within the personal space radius, in radians per second
+    /// The speed at which a pedestrian changes its facing direction when within the personal space radius
+    const PEDESTRIAN_PSPACE_REPULSION: f64 = 0.2;
+    
+    /// The intensity of repulsion from a wall within the personal space radius
     const WALL_DIRECTION_REPULSION: f64 = 0.1;
     
     /// Intensity of random noise added to pedestrian speed
@@ -149,14 +154,14 @@ pub mod pedestrian {
             for (n_x, n_y, n_dir) in other_pedestrians {
                 let dist = ((self.x - n_x)*(self.x - n_x) + (self.y - n_y)*(self.y - n_y)).sqrt();
                 
-                // The direction the neighbour is in
+                // The direction the neighbour is in, between -π and π
                 let abs_neighbour_angle = (n_y - self.y).atan2(n_x - self.x);
-                // The direction the neighbour is in, relative to the direction of travel of this pedestrian
-                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU) % TAU;
+                // The direction the neighbour is in, relative to the direction of travel of this pedestrian, between 0 and 2π
+                let travel_rel_angle = (abs_neighbour_angle - self.facing_direction + TAU + TAU) % TAU;
                 
                 // Intersecting hitbox
                 if dist < 2.0*PEDESTRIAN_RADIUS {
-                    //println!("Intersection");
+                    //println!("Collision");
                     
                     // Compute the overlap between the two pedestrians
                     let k = 2.0*PEDESTRIAN_RADIUS - dist;
@@ -197,6 +202,13 @@ pub mod pedestrian {
                 
                 // Within personal space
                 if dist < PEDESTRIAN_RADIUS + PEDESTRIAN_PSPACE_RADIUS {
+                    // Change the direction of travel to align better with the angle facing away from the neighbour
+                    
+                    // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                    let away_angle = abs_neighbour_angle + PI;
+                    
+                    // Nudge the direction of travel away from the neighbour
+                    self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_PSPACE_REPULSION*time_scale);
                     
                 }
                 
@@ -328,7 +340,7 @@ pub mod pedestrian {
     /// Given an input angle and a target angle, move the input angle so that it is closer to the target angle
     /// 
     /// * `initial_angle` - Angle in radians, between 0 and 2π
-    /// * `target_angle` - Angle in radians, between -π and π
+    /// * `target_angle` - Angle in radians, between -π and 2π
     /// * `nudge_ratio` - A multiplier for how much the angle is changed (change in angle = diff(target_angle, initial_angle) * nudge_ratio)
     fn nudge_angle(initial_angle: f64, target_angle: f64, nudge_ratio: f64) -> f64 {
         
@@ -336,7 +348,7 @@ pub mod pedestrian {
         let mut angle_diff = initial_angle - target_angle;
         
         // Constrain angle_diff between -π and π
-        angle_diff = if angle_diff > PI {angle_diff - TAU} else {angle_diff};
+        angle_diff = (angle_diff + TAU + PI) % TAU - PI;
         
         // Return the new angle
         return (initial_angle - angle_diff*nudge_ratio + TAU) % TAU;

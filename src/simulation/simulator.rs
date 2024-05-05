@@ -108,12 +108,12 @@ pub mod simulator {
         /// Make some number of pedestrians active, depending on pedestrian_add_rate
         fn update_active(&mut self) {
             // Debug code to randomly add finished pedestrians back into the available pool
-            if self.finished_pedestrians.len() > 0 && rand::random::<f64>() > 0.5 {
-                let mut new_ped = self.finished_pedestrians.pop().unwrap();
-                new_ped.x = 0.0;
-                new_ped.y = rand::random::<f64>()*6.0+1.0;
-                self.available_pedestrians.push(new_ped);
-            }
+            //if self.finished_pedestrians.len() > 0 && rand::random::<f64>() > 0.5 {
+            //    let mut new_ped = self.finished_pedestrians.pop().unwrap();
+            //    new_ped.x = 0.0;
+            //    new_ped.y = rand::random::<f64>()*6.0+1.0;
+            //    self.available_pedestrians.push(new_ped);
+            //}
             
             while self.available_pedestrians.len() > 0 && self.time_elapsed > ((self.active_pedestrians.len() + self.finished_pedestrians.len()) as f64) / self.pedestrian_add_rate {
                 self.active_pedestrians.push(self.available_pedestrians.pop().unwrap());
