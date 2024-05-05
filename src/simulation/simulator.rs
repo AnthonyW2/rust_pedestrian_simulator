@@ -9,7 +9,7 @@ pub mod simulator {
     
     
     /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
-    pub const TARGET_LOCATION_RADIUS: f64 = 1.0;
+    pub const TARGET_LOCATION_RADIUS: f64 = 1.5;
     
     /// How many pixels in a metre
     pub const DRAW_SCALE: i32 = 50;
@@ -218,6 +218,13 @@ pub mod simulator {
                     10.0,
                     10.0,
                     Color::from_hex("005de9").unwrap()
+                );
+                rl_handle.draw_ellipse(
+                    offset.0 + DRAW_SCALE*(*x as i32),
+                    offset.1 + DRAW_SCALE*(*y as i32),
+                    (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
+                    (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
+                    Color::fade(&Color::from_hex("005de9").unwrap(), 0.2)
                 );
             }
             

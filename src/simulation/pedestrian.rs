@@ -41,11 +41,15 @@ pub mod pedestrian {
     /// Intensity of random noise added to pedestrian facing direction
     const PEDESTRIAN_DIRECTION_NOISE_FACTOR: f64 = 0.3;
     
+    /// Intensity of bias (to facing direction) caused by Etiquette::LEFT_BIAS or Etiquette::RIGHT_BIAS
+    const PEDESTRIAN_ETIQUETTE_BIAS_FACTOR: f64 = 0.25;
+    
     // Etiquette option enum
+    #[derive(PartialEq)]
     pub enum Etiquette {
-        LEFT_BIAS,  // Stay to the left
-        RIGHT_BIAS, // Stay to the right
-        DIRECT_DEST // Walk directly towards the destination
+        LeftBias,  // Stay to the left
+        RightBias, // Stay to the right
+        DirectDest // Walk directly towards the destination
     }
     
     pub struct Walker {
@@ -80,7 +84,8 @@ pub mod pedestrian {
             Walker {
                 x: environment.start_positions[group][start].0,
                 y: environment.start_positions[group][start].1,
-                facing_direction: 0.0,
+                // Initially point towards destination
+                facing_direction: ((environment.end_positions[group][end].1 - environment.start_positions[group][start].1).atan2(environment.end_positions[group][end].0 - environment.start_positions[group][start].0) + TAU) % TAU,
                 target_speed,
                 inst_speed: 0.0,
                 environment,
@@ -99,7 +104,7 @@ pub mod pedestrian {
             //println!("Simulating one pedestrian timestep...");
             
             // Find the distance and normal vector to each wall/boundary in the simulation
-            let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
+            //let wall_normals = self.environment.boundaries.iter().map(|wall| wall.get_normal_vector((self.x, self.y))).collect::<Vec<_>>();
             
             // Apply acceleration/deceleration to change velocity
             if self.inst_speed < self.target_speed {
@@ -118,6 +123,14 @@ pub mod pedestrian {
             
             // Update the facing direction to be better aligned with the destination
             self.facing_direction = nudge_angle(self.facing_direction, target_angle, PEDESTRIAN_DIRECTION_CHANGE_FACTOR*time_scale);
+            
+            
+            // Add bias to movement direction depending on etiquette
+            if self.etiquette == Etiquette::LeftBias {
+                self.facing_direction -= PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+            } else if self.etiquette == Etiquette::RightBias {
+                self.facing_direction += PEDESTRIAN_ETIQUETTE_BIAS_FACTOR * time_scale;
+            }
             
             
             self.react_to_neighbours(time_scale, other_pedestrians_after);
@@ -180,10 +193,18 @@ pub mod pedestrian {
                         //println!("Oncoming detected");
                         //self.inst_speed -= PEDESTRIAN_ACCEL*time_scale;
                         
+                        if self.etiquette == Etiquette::LeftBias {
+                            
+                        } else if self.etiquette == Etiquette::RightBias {
+                            
+                        } else {
+                            
+                        }
+                        
                     } else {
-                        // Moving same direction - slow down
+                        // Moving same direction - slow down a little bit
                         //println!("Behind pedestrian");
-                        //self.inst_speed -= PEDESTRIAN_ACCEL*time_scale;
+                        self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
                     }
                     
                 }
