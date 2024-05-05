@@ -27,7 +27,9 @@ pub mod simulator {
         /// All the walkers that have reached their destinations
         finished_pedestrians: Vec<pedestrian::Walker>,
         /// The number of pedestrians added to the simulation per second
-        pedestrian_add_rate: f64
+        pedestrian_add_rate: f64,
+        /// The travel time, group ID, and finish time, per pedestrian
+        travel_times: Vec<(f64, usize, f64)>
     }
     
     /// Describes a 2 dimensional environment where a simulation takes place
@@ -58,7 +60,8 @@ pub mod simulator {
                 available_pedestrians: Vec::new(),
                 active_pedestrians: Vec::new(),
                 finished_pedestrians: Vec::new(),
-                pedestrian_add_rate
+                pedestrian_add_rate,
+                travel_times: Vec::new()
             }
         }
         
@@ -82,11 +85,28 @@ pub mod simulator {
             
             for (i, ped) in self.active_pedestrians.iter_mut().enumerate() {
                 ped.simulate_timestep(time_scale, &pedestrian_positions[0..i], &pedestrian_positions[i+1..]);
+                
+                let travel_time = ped.check_timing_boundaries(time_scale);
+                if travel_time.is_some() {
+                    self.travel_times.push((travel_time.unwrap(), ped.get_group(), self.time_elapsed));
+                }
+                
             }
             
             self.time_elapsed += time_scale;
             
             self.update_finished();
+            
+        }
+        
+        /// Run the simulation until all pedestrians have finished, returning timing results
+        pub fn simulate_full(&mut self, time_scale: f64) -> Vec<(f64, usize, f64)> {
+            
+            while self.available_pedestrians.len() + self.active_pedestrians.len() > 0 {
+                self.simulate_timestep(time_scale);
+            }
+            
+            return self.travel_times.clone();
             
         }
         

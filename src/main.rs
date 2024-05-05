@@ -10,8 +10,11 @@ use simulation::pedestrian::pedestrian::Etiquette;
 
 const SIM_SPEED: f64 = 2.0;
 
-/// Create a simple demonstration & debugging simulation
-fn create_demo_sim() -> CrowdSim {
+/// Run & display the simulation in real time, or run the entire simulation immediately
+const RENDER: bool = true;
+
+/// Create a simulation for callibration purposes
+fn create_callibration_sim() -> CrowdSim {
     let mut simulated_area_1 = SimArea::new();
     
     simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
@@ -40,11 +43,91 @@ fn create_demo_sim() -> CrowdSim {
     crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
     crowd_simulation.add_pedestrian_set(120,0,Etiquette::NoBias);
     crowd_simulation.add_pedestrian_set(10,0,Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
+    //crowd_simulation.add_pedestrian_set(100,0,Etiquette::NoBias);
     
     // Pedestrians moving right-to-left
     crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
     crowd_simulation.add_pedestrian_set(120,1,Etiquette::NoBias);
     crowd_simulation.add_pedestrian_set(10,1,Etiquette::RightBias);
+    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
+    //crowd_simulation.add_pedestrian_set(100,1,Etiquette::NoBias);
+    
+    crowd_simulation.randomise_pedestrian_order();
+    
+    return crowd_simulation;
+    
+}
+
+/// Create a simulation for testing all pedestrians with a left bias
+fn create_left_bias_sim() -> CrowdSim {
+    let mut simulated_area_1 = SimArea::new();
+    
+    simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
+    simulated_area_1.add_wall((-1.0,6.0), (32.0,6.0));
+    simulated_area_1.add_wall((-1.0,0.0), (-1.0,6.0));
+    simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
+    
+    // Timing barriers
+    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
+    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
+    
+    // Start & end group moving left-to-right
+    simulated_area_1.add_start_end_group(
+        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
+        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
+    );
+    // Start & end group moving right-to-left
+    simulated_area_1.add_start_end_group(
+        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
+        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
+    );
+    
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    
+    // Pedestrians moving left-to-right
+    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
+    
+    // Pedestrians moving right-to-left
+    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
+    
+    crowd_simulation.randomise_pedestrian_order();
+    
+    return crowd_simulation;
+    
+}
+
+/// Create a simulation for testing all pedestrians with no bias
+fn create_no_bias_sim() -> CrowdSim {
+    let mut simulated_area_1 = SimArea::new();
+    
+    simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
+    simulated_area_1.add_wall((-1.0,6.0), (32.0,6.0));
+    simulated_area_1.add_wall((-1.0,0.0), (-1.0,6.0));
+    simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
+    
+    // Timing barriers
+    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
+    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
+    
+    // Start & end group moving left-to-right
+    simulated_area_1.add_start_end_group(
+        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
+        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
+    );
+    // Start & end group moving right-to-left
+    simulated_area_1.add_start_end_group(
+        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
+        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
+    );
+    
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    
+    // Pedestrians moving left-to-right
+    crowd_simulation.add_pedestrian_set(100,0,Etiquette::NoBias);
+    
+    // Pedestrians moving right-to-left
+    crowd_simulation.add_pedestrian_set(100,1,Etiquette::NoBias);
     
     crowd_simulation.randomise_pedestrian_order();
     
@@ -54,7 +137,16 @@ fn create_demo_sim() -> CrowdSim {
 
 fn main() {
     
-    let mut crowd_simulation = create_demo_sim();
+    //let mut crowd_simulation = create_callibration_sim();
+    let mut crowd_simulation = create_left_bias_sim();
+    //let mut crowd_simulation = create_no_bias_sim();
+    
+    if !RENDER {
+        let results = crowd_simulation.simulate_full(0.02);
+        println!("{:?}", results);
+        return;
+    }
+    
     
     let (mut rl, thread) = raylib::init()
         .size(1600, 600)

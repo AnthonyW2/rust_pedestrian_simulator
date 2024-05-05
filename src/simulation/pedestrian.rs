@@ -164,9 +164,6 @@ pub mod pedestrian {
             
             self.resolve_wall_collisions(time_scale);
             
-            
-            self.check_timing_boundaries(time_scale);
-            
         }
         
         /// React to neighbouring pedestrians, considering specific etiquette rules
@@ -441,8 +438,13 @@ pub mod pedestrian {
             return self.environment.end_positions[self.group][self.target_location];
         }
         
+        /// Return group ID
+        pub fn get_group(&self) -> usize {
+            return self.group;
+        }
+        
         /// Check for collisions with timing boundaries, and log the time taken to travel between two of them
-        fn check_timing_boundaries(&mut self, time_scale: f64) {
+        pub fn check_timing_boundaries(&mut self, time_scale: f64) -> Option<f64> {
             
             // Increment time elapsed
             if self.timing_boundary_elapsed.is_some() {
@@ -467,9 +469,13 @@ pub mod pedestrian {
             }
             
             if self.timing_boundary_elapsed.is_some() && touched_boundary_count == 2 {
-                println!("Time: {}s, Group: {}", (self.timing_boundary_elapsed.unwrap()*100.0).round()/100.0, self.group);
+                let travel_time = self.timing_boundary_elapsed.unwrap();
                 self.timing_boundary_elapsed = None;
+                println!("Time: {}s, Group: {}", (travel_time*100.0).round()/100.0, self.group);
+                return Some(travel_time);
             }
+            
+            return None;
             
         }
         
