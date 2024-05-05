@@ -21,7 +21,7 @@ pub mod pedestrian {
     const PEDESTRIAN_PSPACE_RADIUS: f64 = 0.856;
     
     /// The distance a pedestrian looks ahead for obstacles, in metres
-    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 1.5;
+    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 2.0;
     /// The distance a pedestrian looks ahead for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
@@ -214,6 +214,13 @@ pub mod pedestrian {
                             // No directional bias
                             // Slow down a bit
                             self.inst_speed -= PEDESTRIAN_ACCEL*time_scale/2.0;
+                            
+                            // The angle that points away from the neighbouring pedestrian, between 0 and 2π
+                            let away_angle = abs_neighbour_angle + PI;
+                            
+                            // Nudge the direction of travel away from the neighbour
+                            self.facing_direction = nudge_angle(self.facing_direction, away_angle, PEDESTRIAN_OPPOSING_REPULSION*time_scale);
+                            
                         }
                         
                     } else {
