@@ -31,29 +31,9 @@ fn create_calibration_sim() -> CrowdSim {
     /// Normalised ratio of left-, non-, and right-biased pedestrians
     const BIAS_RATIOS: (f64, f64, f64) = (0.443877551020408, 0.520408163265306, 0.0357142857142857);
     
-    let mut simulated_area_1 = SimArea::new();
+    let simulated_area = create_testing_environment();
     
-    simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
-    simulated_area_1.add_wall((-1.0,6.0), (32.0,6.0));
-    simulated_area_1.add_wall((-1.0,0.0), (-1.0,6.0));
-    simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
-    
-    // Timing barriers
-    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
-    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
-    
-    // Start & end group moving left-to-right
-    simulated_area_1.add_start_end_group(
-        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
-        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
-    );
-    // Start & end group moving right-to-left
-    simulated_area_1.add_start_end_group(
-        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
-        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
-    );
-    
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), WALKER_RATE);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.0*0.5) as usize, 0, Etiquette::LeftBias);
@@ -73,29 +53,9 @@ fn create_calibration_sim() -> CrowdSim {
 
 /// Create a simulation for testing all pedestrians with a left bias
 fn create_left_bias_sim() -> CrowdSim {
-    let mut simulated_area_1 = SimArea::new();
+    let simulated_area = create_testing_environment();
     
-    simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
-    simulated_area_1.add_wall((-1.0,6.0), (32.0,6.0));
-    simulated_area_1.add_wall((-1.0,0.0), (-1.0,6.0));
-    simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
-    
-    // Timing barriers
-    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
-    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
-    
-    // Start & end group moving left-to-right
-    simulated_area_1.add_start_end_group(
-        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
-        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
-    );
-    // Start & end group moving right-to-left
-    simulated_area_1.add_start_end_group(
-        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
-        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
-    );
-    
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), WALKER_RATE);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::LeftBias);
@@ -111,29 +71,9 @@ fn create_left_bias_sim() -> CrowdSim {
 
 /// Create a simulation for testing all pedestrians with no bias
 fn create_no_bias_sim() -> CrowdSim {
-    let mut simulated_area_1 = SimArea::new();
+    let simulated_area = create_testing_environment();
     
-    simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
-    simulated_area_1.add_wall((-1.0,6.0), (32.0,6.0));
-    simulated_area_1.add_wall((-1.0,0.0), (-1.0,6.0));
-    simulated_area_1.add_wall((32.0,0.0), (32.0,6.0));
-    
-    // Timing barriers
-    simulated_area_1.add_timing_boundary((3.0,0.0), (3.0,6.0));
-    simulated_area_1.add_timing_boundary((28.0,0.0), (28.0,6.0));
-    
-    // Start & end group moving left-to-right
-    simulated_area_1.add_start_end_group(
-        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
-        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
-    );
-    // Start & end group moving right-to-left
-    simulated_area_1.add_start_end_group(
-        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
-        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
-    );
-    
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), WALKER_RATE);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::NoBias);
@@ -145,6 +85,33 @@ fn create_no_bias_sim() -> CrowdSim {
     
     return crowd_simulation;
     
+}
+
+/// Create the simulation environment of interest
+fn create_testing_environment() -> SimArea {
+    let mut simulated_area = SimArea::new();
+    
+    simulated_area.add_wall((-1.0,0.0), (32.0,0.0));
+    simulated_area.add_wall((-1.0,6.0), (32.0,6.0));
+    simulated_area.add_wall((-1.0,0.0), (-1.0,6.0));
+    simulated_area.add_wall((32.0,0.0), (32.0,6.0));
+    
+    // Timing barriers
+    simulated_area.add_timing_boundary((3.0,0.0), (3.0,6.0));
+    simulated_area.add_timing_boundary((28.0,0.0), (28.0,6.0));
+    
+    // Start & end group moving left-to-right
+    simulated_area.add_start_end_group(
+        vec![(0.0,1.0), (0.0,2.0), (0.0,3.0), (0.0,4.0), (0.0,5.0)],
+        vec![(30.0,1.0), (30.0,2.0), (30.0,3.0), (30.0,4.0), (30.0,5.0)],
+    );
+    // Start & end group moving right-to-left
+    simulated_area.add_start_end_group(
+        vec![(31.0,1.0), (31.0,2.0), (31.0,3.0), (31.0,4.0), (31.0,5.0)],
+        vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
+    );
+    
+    return simulated_area;
 }
 
 fn main() {
@@ -182,7 +149,7 @@ fn main() {
     
     
     let (mut rl, thread) = raylib::init()
-        .size(1600, 600)
+        .size(1500, 500)
         .resizable() // If the window is not resizable it will float by default
         .title("Hello, World")
         .vsync() // Ensure that the window has vsync enabled (unless overridden by system)
