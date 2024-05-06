@@ -236,8 +236,8 @@ pub mod simulator {
             // Draw the start points
             for (x,y) in (&self.start_positions).iter().flatten() {
                 rl_handle.draw_circle(
-                    offset.0 + DRAW_SCALE*(*x as i32),
-                    offset.1 + DRAW_SCALE*(*y as i32),
+                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
+                    offset.1 + ((DRAW_SCALE as f64)* *y) as i32,
                     (DRAW_SCALE as f32)*0.2,
                     Color::from_hex("3cbd00").unwrap()
                 );
@@ -245,14 +245,14 @@ pub mod simulator {
             // Draw the end points & zones
             for (x,y) in (&self.end_positions).iter().flatten() {
                 rl_handle.draw_circle(
-                    offset.0 + DRAW_SCALE*(*x as i32),
-                    offset.1 + DRAW_SCALE*(*y as i32),
+                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
+                    offset.1 + ((DRAW_SCALE as f64)* *y) as i32,
                     (DRAW_SCALE as f32)*0.2,
                     Color::from_hex("005de9").unwrap()
                 );
                 rl_handle.draw_circle(
-                    offset.0 + DRAW_SCALE*(*x as i32),
-                    offset.1 + DRAW_SCALE*(*y as i32),
+                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
+                    offset.1 + ((DRAW_SCALE as f64) * *y) as i32,
                     (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
                     Color::fade(&Color::from_hex("005de9").unwrap(), 0.2)
                 );
@@ -335,10 +335,10 @@ pub mod simulator {
         pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), color: impl Into<raylib::ffi::Color>) {
             
             rl_handle.draw_line(
-                offset.0 + DRAW_SCALE*(self.x1 as i32),
-                offset.1 + DRAW_SCALE*(self.y1 as i32),
-                offset.0 + DRAW_SCALE*(self.x2 as i32),
-                offset.1 + DRAW_SCALE*(self.y2 as i32),
+                offset.0 + ((DRAW_SCALE as f64)*self.x1) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*self.y1) as i32,
+                offset.0 + ((DRAW_SCALE as f64)*self.x2) as i32,
+                offset.1 + ((DRAW_SCALE as f64)*self.y2) as i32,
                 color
             );
             
