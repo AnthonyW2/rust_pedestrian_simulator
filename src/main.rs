@@ -8,11 +8,11 @@ use simulation::simulator::simulator::{SimArea, CrowdSim};
 use simulation::pedestrian::pedestrian::Etiquette;
 
 
-/// Speed multiplier if rending the simulation
+/// Speed multiplier if rendering the simulation
 const SIM_SPEED: f64 = 2.0;
 
 /// Run & display the simulation in real time, or run the entire simulation immediately
-const RENDER: bool = false;
+const RENDER: bool = true;
 
 /// Which simulation to use
 /// 0 = callibration
