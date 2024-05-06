@@ -28,14 +28,19 @@ const RENDER: bool = true;
 /// 3 = vertical calibration
 /// 4 = diagonal example
 /// 5 = crossroads (experimental)
+/// 6 = simulate many different pedestrian flow rates
+/// 7 = compare the left-bias and no-bias simulations many times
 /// _ = original debug sim
-const SIM_TYPE: usize = 0;
+const SIM_TYPE: usize = 7;
 
 /// Total number of pedestrians to simulate
-const TOTAL_PEDESTRIANS: u32 = 1000;
+const TOTAL_PEDESTRIANS: u32 = 100;
 
 /// Walkers per second during peak times
 const WALKER_RATE: f64 = 0.8;
+
+/// Simulation time scale when not rendering
+const TIME_SCALE: f64 = 0.02;
 
 /// Create a simulation for callibration purposes
 fn create_calibration_sim() -> CrowdSim {
@@ -63,10 +68,10 @@ fn create_calibration_sim() -> CrowdSim {
 }
 
 /// Create a simulation for testing all pedestrians with a left bias
-fn create_left_bias_sim() -> CrowdSim {
+fn create_left_bias_sim(ped_add_rate: f64) -> CrowdSim {
     let simulated_area = create_testing_environment();
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), WALKER_RATE);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), ped_add_rate);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::LeftBias);
@@ -81,10 +86,10 @@ fn create_left_bias_sim() -> CrowdSim {
 }
 
 /// Create a simulation for testing all pedestrians with no bias
-fn create_no_bias_sim() -> CrowdSim {
+fn create_no_bias_sim(ped_add_rate: f64) -> CrowdSim {
     let simulated_area = create_testing_environment();
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), WALKER_RATE);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area), ped_add_rate);
     
     // Pedestrians moving left-to-right
     crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::NoBias);
@@ -125,38 +130,105 @@ fn create_testing_environment() -> SimArea {
     return simulated_area;
 }
 
+
+/// Run a simulation for many different pedestrian add rates
+fn test_varying_rates(sim_type: usize, lower_rate: f64, upper_rate: f64, increment: f64) {
+    let mut add_rate = lower_rate;
+    while add_rate <= upper_rate {
+        
+        let mut crowd_simulation;
+        match sim_type {
+            1 => {crowd_simulation = create_left_bias_sim(add_rate)},
+            2 => {crowd_simulation = create_no_bias_sim(add_rate)},
+            _ => {return}
+        }
+        
+        let results = crowd_simulation.simulate_full(TIME_SCALE);
+        let parsed_results = parse_results(results.2);
+        
+        println!("{}: {} ± {}s", add_rate, (parsed_results.1 * 100.0).round() / 100.0, (parsed_results.2 * 100.0).round() / 100.0);
+        
+        // Increment add_rate while preventing rounding errors
+        add_rate = ((add_rate + increment)*1000.0).round() / 1000.0;
+    }
+    
+    return;
+    
+}
+
+
+/// Run the test simulations against each other many times
+fn compare_simulations_repeatedly(iterations: usize) {
+    let mut left_bias_win_count = 0;
+    let mut no_bias_win_count = 0;
+    
+    for _ in 0..iterations {
+        
+        let results_left_bias = create_left_bias_sim(WALKER_RATE).simulate_full(TIME_SCALE);
+        let parsed_results_left_bias = parse_results(results_left_bias.2);
+        
+        let results_no_bias = create_no_bias_sim(WALKER_RATE).simulate_full(TIME_SCALE);
+        let parsed_results_no_bias = parse_results(results_no_bias.2);
+        
+        println!(
+            "Left bias: {} ± {}s  |  No bias: {} ± {}s",
+            (parsed_results_left_bias.1 * 100.0).round() / 100.0,
+            (parsed_results_left_bias.2 * 100.0).round() / 100.0,
+            (parsed_results_no_bias.1 * 100.0).round() / 100.0,
+            (parsed_results_no_bias.2 * 100.0).round() / 100.0
+        );
+        
+        if parsed_results_left_bias.1 < parsed_results_no_bias.1 {
+            left_bias_win_count += 1;
+        } else if parsed_results_left_bias.1 > parsed_results_no_bias.1 {
+            no_bias_win_count += 1;
+        }
+        
+    }
+    
+    println!("Left bias won {} times.", left_bias_win_count);
+    println!("No bias won {} times.", no_bias_win_count);
+    
+    return;
+}
+
+
 fn main() {
     
     let mut crowd_simulation;
     
     match SIM_TYPE {
         0 => {crowd_simulation = create_calibration_sim()},
-        1 => {crowd_simulation = create_left_bias_sim()},
-        2 => {crowd_simulation = create_no_bias_sim()},
+        1 => {crowd_simulation = create_left_bias_sim(WALKER_RATE)},
+        2 => {crowd_simulation = create_no_bias_sim(WALKER_RATE)},
         3 => {crowd_simulation = create_calibration_sim_vertical()},
         4 => {crowd_simulation = create_diagonal_demo_sim()},
         5 => {crowd_simulation = create_crossroads_sim()},
+        6 => {
+            println!("Varying pedestrian rates");
+            println!("Simulation 1:");
+            test_varying_rates(1, 0.5, 2.0, 0.01);
+            println!("Simulation 2:");
+            test_varying_rates(2, 0.5, 2.0, 0.01);
+            return;
+        },
+        7 => {
+            println!("Compare left-bias and no-bias many times");
+            compare_simulations_repeatedly(10);
+            return;
+        },
         _ => {crowd_simulation = create_demo_sim_1()}
     }
     
     if !RENDER {
-        let results = crowd_simulation.simulate_full(0.02);
+        let results = crowd_simulation.simulate_full(TIME_SCALE);
         //println!("All results: {:?}", results);
         
-        let total_travel_time = results.2.iter().map(|t| t.0).sum::<f64>();
+        let parsed_results = parse_results(results.2);
         
-        let mean_travel_time: f64 = total_travel_time / (results.2.len() as f64);
-        
-        let travel_time_variance = results.2.iter().map(|t| {
-            let diff = mean_travel_time - t.0;
-            
-            diff*diff
-        }).sum::<f64>() / (results.2.len() as f64);
-        let travel_time_stdev = travel_time_variance.sqrt();
-        
-        println!("Average travel time: {} ± {}s", (mean_travel_time * 100.0).round() / 100.0, (travel_time_stdev * 100.0).round() / 100.0);
+        println!("Average travel time: {} ± {}s", (parsed_results.1 * 100.0).round() / 100.0, (parsed_results.2 * 100.0).round() / 100.0);
         println!("Total simulation time: {} hours", (results.0/3600.0 * 100.0).round() / 100.0);
-        println!("Total pedestrian time: {} man-hours", (total_travel_time/3600.0 * 100.0).round() / 100.0);
+        println!("Total pedestrian time: {} man-hours", (parsed_results.0/3600.0 * 100.0).round() / 100.0);
         
         return;
     }
@@ -196,6 +268,27 @@ fn main() {
         
         frame_count += 1;
     }
+    
+}
+
+
+
+/// Parse the raw results from a full simulation
+/// 
+/// Returns (total travel time, average travel time, standard deviation)
+fn parse_results(sim_results: Vec<(f64, usize, f64)>) -> (f64, f64, f64) {
+    
+    let total_travel_time = sim_results.iter().map(|t| t.0).sum::<f64>();
+    
+    let mean_travel_time: f64 = total_travel_time / (sim_results.len() as f64);
+    
+    let travel_time_variance = sim_results.iter().map(|t| {
+        let diff = mean_travel_time - t.0;
+        
+        diff*diff
+    }).sum::<f64>() / (sim_results.len() as f64);
+    
+    return (total_travel_time, mean_travel_time, travel_time_variance.sqrt());
     
 }
 
