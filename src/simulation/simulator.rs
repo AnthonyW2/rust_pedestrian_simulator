@@ -101,7 +101,7 @@ pub mod simulator {
         
         /// Run the simulation until all pedestrians have finished, returning timing results
         /// 
-        /// Return format: (total time, pedestrian count, [travel time, group, finish time])
+        /// Return format: (total time, pedestrian count, \[(travel time, group, finish time)])
         pub fn simulate_full(&mut self, time_scale: f64) -> (f64, usize, Vec<(f64, usize, f64)>) {
             
             while self.available_pedestrians.len() + self.active_pedestrians.len() > 0 {

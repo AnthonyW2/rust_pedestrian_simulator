@@ -31,16 +31,20 @@ const RENDER: bool = true;
 /// 6 = simulate many different pedestrian flow rates
 /// 7 = compare the left-bias and no-bias simulations many times
 /// _ = original debug sim
-const SIM_TYPE: usize = 7;
+const SIM_TYPE: usize = 0;
 
 /// Total number of pedestrians to simulate
-const TOTAL_PEDESTRIANS: u32 = 100;
+const TOTAL_PEDESTRIANS: u32 = 1040;
 
 /// Walkers per second during peak times
 const WALKER_RATE: f64 = 0.8;
 
 /// Simulation time scale when not rendering
 const TIME_SCALE: f64 = 0.02;
+
+/// The number of pedestrians to exclude from the temporal extremes of the results (the start & end).
+/// The pedestrians at the very beginning and end of the simulation will interact with fewer pedestrians, so their results are not useful.
+const TRIMMED_PEDESTRIANS: usize = 20;
 
 /// Create a simulation for callibration purposes
 fn create_calibration_sim() -> CrowdSim {
@@ -144,7 +148,8 @@ fn test_varying_rates(sim_type: usize, lower_rate: f64, upper_rate: f64, increme
         }
         
         let results = crowd_simulation.simulate_full(TIME_SCALE);
-        let parsed_results = parse_results(results.2);
+        let number_excluded = (add_rate * results.2[0].0 + 1.0) as usize;
+        let parsed_results = parse_results(results.2, number_excluded);
         
         println!("{}: {} ± {}s", add_rate, (parsed_results.1 * 100.0).round() / 100.0, (parsed_results.2 * 100.0).round() / 100.0);
         
@@ -165,10 +170,10 @@ fn compare_simulations_repeatedly(iterations: usize) {
     for _ in 0..iterations {
         
         let results_left_bias = create_left_bias_sim(WALKER_RATE).simulate_full(TIME_SCALE);
-        let parsed_results_left_bias = parse_results(results_left_bias.2);
+        let parsed_results_left_bias = parse_results(results_left_bias.2, TRIMMED_PEDESTRIANS);
         
         let results_no_bias = create_no_bias_sim(WALKER_RATE).simulate_full(TIME_SCALE);
-        let parsed_results_no_bias = parse_results(results_no_bias.2);
+        let parsed_results_no_bias = parse_results(results_no_bias.2, TRIMMED_PEDESTRIANS);
         
         println!(
             "Left bias: {} ± {}s  |  No bias: {} ± {}s",
@@ -224,7 +229,7 @@ fn main() {
         let results = crowd_simulation.simulate_full(TIME_SCALE);
         //println!("All results: {:?}", results);
         
-        let parsed_results = parse_results(results.2);
+        let parsed_results = parse_results(results.2, TRIMMED_PEDESTRIANS);
         
         println!("Average travel time: {} ± {}s", (parsed_results.1 * 100.0).round() / 100.0, (parsed_results.2 * 100.0).round() / 100.0);
         println!("Total simulation time: {} hours", (results.0/3600.0 * 100.0).round() / 100.0);
@@ -276,17 +281,19 @@ fn main() {
 /// Parse the raw results from a full simulation
 /// 
 /// Returns (total travel time, average travel time, standard deviation)
-fn parse_results(sim_results: Vec<(f64, usize, f64)>) -> (f64, f64, f64) {
+fn parse_results(sim_results: Vec<(f64, usize, f64)>, trim_extremes_count: usize) -> (f64, f64, f64) {
     
-    let total_travel_time = sim_results.iter().map(|t| t.0).sum::<f64>();
+    let trimmed_results = &sim_results[trim_extremes_count..(sim_results.len()-trim_extremes_count)];
     
-    let mean_travel_time: f64 = total_travel_time / (sim_results.len() as f64);
+    let total_travel_time = trimmed_results.iter().map(|t| t.0).sum::<f64>();
     
-    let travel_time_variance = sim_results.iter().map(|t| {
+    let mean_travel_time: f64 = total_travel_time / (trimmed_results.len() as f64);
+    
+    let travel_time_variance = trimmed_results.iter().map(|t| {
         let diff = mean_travel_time - t.0;
         
         diff*diff
-    }).sum::<f64>() / (sim_results.len() as f64);
+    }).sum::<f64>() / (trimmed_results.len() as f64);
     
     return (total_travel_time, mean_travel_time, travel_time_variance.sqrt());
     
