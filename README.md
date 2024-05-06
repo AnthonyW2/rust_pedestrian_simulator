@@ -13,5 +13,5 @@ The simulation is stochastic - pedestrians are created in random positions with 
 The specific reason why the simulation was made was to test the impacts of different pedestrian "etiquettes" - in this case, how average travel time differs when everyone stays left or when everyone walks randomly.
 
 ## Examples
-There are 4 environments & simulations included that are based on the location where data was collected - these work the best.
+There are 4 environments & simulations included that are based on the location where data was collected - these work the best.  
 There are also 3 demonstration simulations: a basic debugging environment; a diagonal pathway; and a crossroads. This simulation was not built with crossroads in mind, so there are problems with the last one, but it does work.
