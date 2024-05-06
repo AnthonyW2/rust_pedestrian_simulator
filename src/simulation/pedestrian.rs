@@ -48,6 +48,9 @@ pub mod pedestrian {
     /// The deceleration of a pedestrian when another pedestrian is oncoming
     const PEDESTRIAN_OPPOSING_DECEL: f64 = PEDESTRIAN_ACCEL * 1.1;
     
+    /// The deceleration of a pedestrian when behind another pedestrian
+    const PEDESTRIAN_FOLLOWING_DECEL: f64 = PEDESTRIAN_ACCEL * 1.1;
+    
     /// The intensity of repulsion from a wall within the personal space radius
     const WALL_REPULSION: f64 = 0.2;
     
@@ -295,7 +298,7 @@ pub mod pedestrian {
                         
                     } else {
                         // Moving same direction - reduce acceleration
-                        self.inst_speed = PEDESTRIAN_MINIMUM_SPEED.max(self.inst_speed - PEDESTRIAN_ACCEL * time_scale / 2.0);
+                        self.inst_speed = PEDESTRIAN_MINIMUM_SPEED.max(self.inst_speed - PEDESTRIAN_FOLLOWING_DECEL * time_scale);
                     }
                     
                 }
@@ -471,7 +474,7 @@ pub mod pedestrian {
             if self.timing_boundary_elapsed.is_some() && touched_boundary_count == 2 {
                 let travel_time = self.timing_boundary_elapsed.unwrap();
                 self.timing_boundary_elapsed = None;
-                println!("Time: {}s, Group: {}", (travel_time*100.0).round()/100.0, self.group);
+                //println!("Time: {}s, Group: {}", (travel_time*100.0).round()/100.0, self.group);
                 return Some(travel_time);
             }
             

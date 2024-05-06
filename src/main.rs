@@ -8,13 +8,29 @@ use simulation::simulator::simulator::{SimArea, CrowdSim};
 use simulation::pedestrian::pedestrian::Etiquette;
 
 
-const SIM_SPEED: f64 = 2.0;
+/// Speed multiplier if rending the simulation
+const SIM_SPEED: f64 = 4.0;
 
 /// Run & display the simulation in real time, or run the entire simulation immediately
-const RENDER: bool = true;
+const RENDER: bool = false;
+
+/// Which simulation to use
+/// 0 = callibration
+/// 1 = left bias
+/// 2 = no bias
+const SIM_TYPE: usize = 0;
+
+/// Total number of pedestrians to simulate
+const TOTAL_PEDESTRIANS: u32 = 1000;
+
+/// Walkers per second during peak times
+const WALKER_RATE: f64 = 0.8;
 
 /// Create a simulation for callibration purposes
 fn create_callibration_sim() -> CrowdSim {
+    /// Normalised ratio of left-, non-, and right-biased pedestrians
+    const BIAS_RATIOS: (f64, f64, f64) = (0.443877551020408, 0.520408163265306, 0.0357142857142857);
+    
     let mut simulated_area_1 = SimArea::new();
     
     simulated_area_1.add_wall((-1.0,0.0), (32.0,0.0));
@@ -37,21 +53,17 @@ fn create_callibration_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
     
     // Pedestrians moving left-to-right
-    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian_set(120,0,Etiquette::NoBias);
-    crowd_simulation.add_pedestrian_set(10,0,Etiquette::RightBias);
-    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
-    //crowd_simulation.add_pedestrian_set(100,0,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.0*0.5) as usize, 0, Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.1*0.5) as usize, 0, Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.2*0.5) as usize, 0, Etiquette::RightBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
-    crowd_simulation.add_pedestrian_set(120,1,Etiquette::NoBias);
-    crowd_simulation.add_pedestrian_set(10,1,Etiquette::RightBias);
-    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
-    //crowd_simulation.add_pedestrian_set(100,1,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.0*0.5) as usize, 1, Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.1*0.5) as usize, 1, Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*BIAS_RATIOS.2*0.5) as usize, 1, Etiquette::RightBias);
     
     crowd_simulation.randomise_pedestrian_order();
     
@@ -83,13 +95,13 @@ fn create_left_bias_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
     
     // Pedestrians moving left-to-right
-    crowd_simulation.add_pedestrian_set(100,0,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::LeftBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian_set(100,1,Etiquette::LeftBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 1, Etiquette::LeftBias);
     
     crowd_simulation.randomise_pedestrian_order();
     
@@ -121,13 +133,13 @@ fn create_no_bias_sim() -> CrowdSim {
         vec![(1.0,1.0), (1.0,2.0), (1.0,3.0), (1.0,4.0), (1.0,5.0)],
     );
     
-    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), 0.8);
+    let mut crowd_simulation = CrowdSim::new(Arc::new(simulated_area_1), WALKER_RATE);
     
     // Pedestrians moving left-to-right
-    crowd_simulation.add_pedestrian_set(100,0,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 0, Etiquette::NoBias);
     
     // Pedestrians moving right-to-left
-    crowd_simulation.add_pedestrian_set(100,1,Etiquette::NoBias);
+    crowd_simulation.add_pedestrian_set(((TOTAL_PEDESTRIANS as f64)*0.5) as usize, 1, Etiquette::NoBias);
     
     crowd_simulation.randomise_pedestrian_order();
     
@@ -137,13 +149,34 @@ fn create_no_bias_sim() -> CrowdSim {
 
 fn main() {
     
-    //let mut crowd_simulation = create_callibration_sim();
-    let mut crowd_simulation = create_left_bias_sim();
-    //let mut crowd_simulation = create_no_bias_sim();
+    let mut crowd_simulation;
+    
+    match SIM_TYPE {
+        0 => {crowd_simulation = create_callibration_sim()},
+        1 => {crowd_simulation = create_left_bias_sim()},
+        2 => {crowd_simulation = create_no_bias_sim()},
+        _ => {crowd_simulation = create_demo_sim_1()}
+    }
     
     if !RENDER {
         let results = crowd_simulation.simulate_full(0.02);
-        println!("{:?}", results);
+        //println!("All results: {:?}", results);
+        
+        let total_travel_time = results.2.iter().map(|t| t.0).sum::<f64>();
+        
+        let mean_travel_time: f64 = total_travel_time / (results.2.len() as f64);
+        
+        let travel_time_variance = results.2.iter().map(|t| {
+            let diff = mean_travel_time - t.0;
+            
+            diff*diff
+        }).sum::<f64>() / (results.2.len() as f64);
+        let travel_time_stdev = travel_time_variance.sqrt();
+        
+        println!("Average travel time: {} ± {}s", (mean_travel_time * 100.0).round() / 100.0, (travel_time_stdev * 100.0).round() / 100.0);
+        println!("Total simulation time: {} hours", (results.0/3600.0 * 100.0).round() / 100.0);
+        println!("Total pedestrian time: {} man-hours", (total_travel_time/3600.0 * 100.0).round() / 100.0);
+        
         return;
     }
     
@@ -187,8 +220,7 @@ fn main() {
 
 
 
-// Other demo simulations:
-/*
+/// Demonstration & debugging simulation
 fn create_demo_sim_1() -> CrowdSim {
     let mut simulated_area_1 = SimArea::new();
     
@@ -228,5 +260,3 @@ fn create_demo_sim_1() -> CrowdSim {
     return crowd_simulation;
     
 }
-
-// */

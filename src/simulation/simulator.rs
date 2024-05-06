@@ -100,13 +100,15 @@ pub mod simulator {
         }
         
         /// Run the simulation until all pedestrians have finished, returning timing results
-        pub fn simulate_full(&mut self, time_scale: f64) -> Vec<(f64, usize, f64)> {
+        /// 
+        /// Return format: (total time, pedestrian count, [travel time, group, finish time])
+        pub fn simulate_full(&mut self, time_scale: f64) -> (f64, usize, Vec<(f64, usize, f64)>) {
             
             while self.available_pedestrians.len() + self.active_pedestrians.len() > 0 {
                 self.simulate_timestep(time_scale);
             }
             
-            return self.travel_times.clone();
+            return (self.time_elapsed, self.finished_pedestrians.len(), self.travel_times.clone());
             
         }
         
