@@ -1,3 +1,10 @@
+/**
+ * Micro-scale Pedestrian Behaviour & etiquette simulator
+ * 
+ * Anthony Wilson
+ * 2024
+ */
+
 use raylib::prelude::*;
 use std::time;
 
