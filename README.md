@@ -1,5 +1,5 @@
 # Micro-scale Pedestrian Simulator
-Written in [Rust](https://www.rust-lang.org/), using [Raylib](https://github.com/deltaphc/raylib-rs) to display the simulation.
+Written in [Rust](https://www.rust-lang.org/), using [Raylib](https://www.raylib.com/) to display the simulation.
 
 ## Background
 This is a very basic simulation I made in about a week for a university unit.  
