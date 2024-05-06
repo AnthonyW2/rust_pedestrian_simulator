@@ -15,3 +15,12 @@ The specific reason why the simulation was made was to test the impacts of diffe
 ## Examples
 There are 4 environments & simulations included that are based on the location where data was collected - these work the best.  
 There are also 3 demonstration simulations: a basic debugging environment; a diagonal pathway; and a crossroads. This simulation was not built with crossroads in mind, so there are problems with the last one, but it does work.
+
+### Calibration simulation:
+![image of calibration simulation](https://raw.githubusercontent.com/AnthonyW2/rust_pedestrian_simulator/master/images/calibration_1.png?raw=true)
+
+### Diagonal path:
+![image of diagonal path simulation](https://raw.githubusercontent.com/AnthonyW2/rust_pedestrian_simulator/master/images/diagonal_1.png?raw=true)
+
+### Crossroads (experimental):
+![image of crossroads simulation](https://raw.githubusercontent.com/AnthonyW2/rust_pedestrian_simulator/master/images/crossroads_1.png?raw=true)
