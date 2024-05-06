@@ -1,9 +1,9 @@
-# Micro-scale Pedestrain Simulation
+# Micro-scale Pedestrian Simulator
 Written in Rust, using Raylib to display the simulation.
 
 ## Background
 This is a very basic simulation I made in about a week for a university unit.  
-Being my first project using Rust, and my first time using Raylib, the code is a bit of a mess.
+Being my first large Rust project, and my first time using Raylib, the code is a bit of a mess.
 
 ## Explanation
 The goal of this simulation is to reasonably accurately simulate pedestrains walking in two directions through a constricted space.  
