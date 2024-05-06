@@ -12,7 +12,7 @@ pub mod pedestrian {
     const PEDESTRIAN_ACCEL: f64 = 0.8;
     
     /// The lower and upper bounds for the pedestrian target speeds to be selected from
-    pub const PEDESTRIAN_TARGET_SPEED_BOUNDS: (f64, f64) = (1.2, 1.45);
+    pub const PEDESTRIAN_TARGET_SPEED_BOUNDS: (f64, f64) = (1.25, 1.5);
     
     /// The slowest a pedestrian will go when avoiding a collision or slowing for someone in front
     pub const PEDESTRIAN_MINIMUM_SPEED: f64 = 0.4;
@@ -27,8 +27,7 @@ pub mod pedestrian {
     const PEDESTRIAN_PSPACE_RADIUS: f64 = 0.856;
     
     /// The distance a pedestrian looks ahead for obstacles, in metres
-    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 2.0;
-    //const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 0.0;
+    const PEDESTRIAN_LOOK_AHEAD_RADIUS: f64 = 1.8;
     /// The distance a pedestrian looks side-to-side for obstacles, in metres
     const PEDESTRIAN_LOOK_BESIDE_RADIUS: f64 = 1.2;
     
@@ -40,7 +39,7 @@ pub mod pedestrian {
     const PEDESTRIAN_COLLISION_AVOIDANCE_FOV: f64 = PI;
     
     /// Intensity of which a pedestrian changes its facing direction when another pedestrian is in front and travelling in the opposite direction
-    const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.25;
+    const PEDESTRIAN_OPPOSING_REPULSION: f64 = 0.4;
     
     /// The speed at which a pedestrian changes its facing direction when within the personal space radius
     const PEDESTRIAN_PSPACE_REPULSION: f64 = 1.5;

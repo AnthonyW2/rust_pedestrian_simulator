@@ -9,7 +9,7 @@ use simulation::pedestrian::pedestrian::Etiquette;
 
 
 /// Speed multiplier if rending the simulation
-const SIM_SPEED: f64 = 4.0;
+const SIM_SPEED: f64 = 2.0;
 
 /// Run & display the simulation in real time, or run the entire simulation immediately
 const RENDER: bool = false;
@@ -21,13 +21,13 @@ const RENDER: bool = false;
 const SIM_TYPE: usize = 0;
 
 /// Total number of pedestrians to simulate
-const TOTAL_PEDESTRIANS: u32 = 1000;
+const TOTAL_PEDESTRIANS: u32 = 10000;
 
 /// Walkers per second during peak times
 const WALKER_RATE: f64 = 0.8;
 
 /// Create a simulation for callibration purposes
-fn create_callibration_sim() -> CrowdSim {
+fn create_calibration_sim() -> CrowdSim {
     /// Normalised ratio of left-, non-, and right-biased pedestrians
     const BIAS_RATIOS: (f64, f64, f64) = (0.443877551020408, 0.520408163265306, 0.0357142857142857);
     
@@ -152,7 +152,7 @@ fn main() {
     let mut crowd_simulation;
     
     match SIM_TYPE {
-        0 => {crowd_simulation = create_callibration_sim()},
+        0 => {crowd_simulation = create_calibration_sim()},
         1 => {crowd_simulation = create_left_bias_sim()},
         2 => {crowd_simulation = create_no_bias_sim()},
         _ => {crowd_simulation = create_demo_sim_1()}
