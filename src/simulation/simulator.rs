@@ -5,7 +5,6 @@ pub mod simulator {
     use rand::{thread_rng, seq::SliceRandom, Rng, distributions::Uniform};
     
     use crate::simulation::pedestrian::pedestrian;
-    //use crate::simulation::pedestrian::pedestrian::Walker;
     
     
     /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
@@ -13,6 +12,7 @@ pub mod simulator {
     
     /// How many pixels in a metre
     pub const DRAW_SCALE: i32 = 40;
+    
     
     /// Contains all information related to a crowd simulation
     pub struct CrowdSim {
@@ -135,14 +135,6 @@ pub mod simulator {
         
         /// Make some number of pedestrians active, depending on pedestrian_add_rate
         fn update_active(&mut self) {
-            // Debug code to randomly add finished pedestrians back into the available pool
-            //if self.finished_pedestrians.len() > 0 && rand::random::<f64>() > 0.5 {
-            //    let mut new_ped = self.finished_pedestrians.pop().unwrap();
-            //    new_ped.x = 0.0;
-            //    new_ped.y = rand::random::<f64>()*6.0+1.0;
-            //    self.available_pedestrians.push(new_ped);
-            //}
-            
             while self.available_pedestrians.len() > 0 && self.time_elapsed > ((self.active_pedestrians.len() + self.finished_pedestrians.len()) as f64) / self.pedestrian_add_rate {
                 self.active_pedestrians.push(self.available_pedestrians.pop().unwrap());
             }
@@ -162,6 +154,7 @@ pub mod simulator {
             }
         }
         
+        /// Return the numbers of: (available, active, finished) pedestrians
         pub fn get_pedestrian_counts(&self) -> (usize, usize, usize) {
             return (self.available_pedestrians.len(), self.active_pedestrians.len(), self.finished_pedestrians.len());
         }
@@ -221,7 +214,7 @@ pub mod simulator {
                     offset.1,
                     offset.0 + DRAW_SCALE*x,
                     offset.1 + DRAW_SCALE*max_y,
-                    Color::from_hex("b0b0b0").unwrap()
+                    Color::fade(&Color::from_hex("b0b0b0").unwrap(), 0.5)
                 );
             }
             for y in 0..max_y {
@@ -230,7 +223,7 @@ pub mod simulator {
                     offset.1 + DRAW_SCALE*y,
                     offset.0 + DRAW_SCALE*max_x,
                     offset.1 + DRAW_SCALE*y,
-                    Color::from_hex("b0b0b0").unwrap()
+                    Color::fade(&Color::from_hex("b0b0b0").unwrap(), 0.5)
                 );
             }
             
@@ -240,28 +233,26 @@ pub mod simulator {
                 wall.draw(rl_handle, offset, Color::from_hex("000000").unwrap());
             }
             
-            // Draw the start & end points
+            // Draw the start points
             for (x,y) in (&self.start_positions).iter().flatten() {
-                rl_handle.draw_ellipse(
+                rl_handle.draw_circle(
                     offset.0 + DRAW_SCALE*(*x as i32),
                     offset.1 + DRAW_SCALE*(*y as i32),
-                    10.0,
-                    10.0,
+                    (DRAW_SCALE as f32)*0.2,
                     Color::from_hex("3cbd00").unwrap()
                 );
             }
+            // Draw the end points & zones
             for (x,y) in (&self.end_positions).iter().flatten() {
-                rl_handle.draw_ellipse(
+                rl_handle.draw_circle(
                     offset.0 + DRAW_SCALE*(*x as i32),
                     offset.1 + DRAW_SCALE*(*y as i32),
-                    10.0,
-                    10.0,
+                    (DRAW_SCALE as f32)*0.2,
                     Color::from_hex("005de9").unwrap()
                 );
-                rl_handle.draw_ellipse(
+                rl_handle.draw_circle(
                     offset.0 + DRAW_SCALE*(*x as i32),
                     offset.1 + DRAW_SCALE*(*y as i32),
-                    (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
                     (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
                     Color::fade(&Color::from_hex("005de9").unwrap(), 0.2)
                 );
