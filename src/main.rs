@@ -25,11 +25,14 @@ const RENDER: bool = true;
 /// 0 = calibration (goal: 18.57 ± 3s)
 /// 1 = left bias
 /// 2 = no bias
+/// 
 /// 3 = vertical calibration
 /// 4 = diagonal example
 /// 5 = crossroads (experimental)
+/// 
 /// 6 = simulate many different pedestrian flow rates
 /// 7 = compare the left-bias and no-bias simulations many times
+/// 
 /// _ = original debug sim
 const SIM_TYPE: usize = 0;
 
@@ -219,7 +222,7 @@ fn main() {
         },
         7 => {
             println!("Compare left-bias and no-bias many times");
-            compare_simulations_repeatedly(10);
+            compare_simulations_repeatedly(100);
             return;
         },
         _ => {crowd_simulation = create_demo_sim_1()}

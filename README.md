@@ -3,7 +3,7 @@ Written in [Rust](https://www.rust-lang.org/), using [Raylib](https://www.raylib
 
 ## Background
 This is a very basic simulation I made in about a week for a university unit.  
-Being my first large Rust project, and my first time using Raylib, the code is a bit of a mess.
+Being my first large Rust project and my first time using Raylib, the code is a bit messy.
 
 ## Explanation
 The goal of this simulation is to reasonably accurately simulate pedestrains walking in two directions through a constricted space.  
@@ -11,6 +11,8 @@ The simulation was calibrated using data collected in a specific location (with 
 The simulation is stochastic - pedestrians are created in random positions with random targets, and random noise is added to their movement.
 
 The specific reason why the simulation was made was to test the impacts of different pedestrian "etiquettes" - in this case, how average travel time differs when everyone stays left or when everyone walks randomly.
+
+The simulation would work very well with concurrency, but I didn't have time to play around with that, so it's currently single-threaded.
 
 ## Examples
 There are 4 environments & simulations included that are based on the location where data was collected - these work the best.  
