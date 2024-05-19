@@ -10,8 +10,11 @@ pub mod simulator {
     /// The distance from a target location that a pedestrian needs to be to qualify as having reached it
     pub const TARGET_LOCATION_RADIUS: f64 = 1.5;
     
-    /// How many pixels in a metre
-    pub const DRAW_SCALE: i32 = 40;
+    
+    const START_COLOUR: &str = "F48154";
+    const END_COLOUR: &str = "2D8183";
+    const END_ZONE_COLOUR: &str = "83D3D4";
+    const TIMING_BOUND_COLOUR: &str = "F48154";
     
     
     /// Contains all information related to a crowd simulation
@@ -163,12 +166,12 @@ pub mod simulator {
         /// 
         /// * `rl_handle` - The RaylibDrawHandle used to draw the objects
         /// * `offset` - The x and y offset of this object, in pixels
-        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), draw_scale: i32) {
             
-            self.area.draw(rl_handle, offset);
+            self.area.draw(rl_handle, offset, draw_scale);
             
             for ped in &self.active_pedestrians {
-                ped.draw(rl_handle, offset);
+                ped.draw(rl_handle, offset, draw_scale);
             }
             
         }
@@ -203,26 +206,26 @@ pub mod simulator {
         }
         
         /// Draw this environment with RayLib
-        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), draw_scale: i32) {
             
             // Add metre gridlines
             let max_x = self.boundaries.iter().map(|wall| wall.x1.max(wall.x2) as i32).max().unwrap();
             let max_y = self.boundaries.iter().map(|wall| wall.y1.max(wall.y2) as i32).max().unwrap();
             for x in 0..max_x {
                 rl_handle.draw_line(
-                    offset.0 + DRAW_SCALE*x,
+                    offset.0 + draw_scale*x,
                     offset.1,
-                    offset.0 + DRAW_SCALE*x,
-                    offset.1 + DRAW_SCALE*max_y,
+                    offset.0 + draw_scale*x,
+                    offset.1 + draw_scale*max_y,
                     Color::fade(&Color::from_hex("b0b0b0").unwrap(), 0.5)
                 );
             }
             for y in 0..max_y {
                 rl_handle.draw_line(
                     offset.0,
-                    offset.1 + DRAW_SCALE*y,
-                    offset.0 + DRAW_SCALE*max_x,
-                    offset.1 + DRAW_SCALE*y,
+                    offset.1 + draw_scale*y,
+                    offset.0 + draw_scale*max_x,
+                    offset.1 + draw_scale*y,
                     Color::fade(&Color::from_hex("b0b0b0").unwrap(), 0.5)
                 );
             }
@@ -230,37 +233,40 @@ pub mod simulator {
             
             // Draw the walls
             for wall in &self.boundaries {
-                wall.draw(rl_handle, offset, Color::from_hex("000000").unwrap());
+                wall.draw(rl_handle, offset, draw_scale, Color::from_hex("000000").unwrap());
             }
             
-            // Draw the start points
-            for (x,y) in (&self.start_positions).iter().flatten() {
-                rl_handle.draw_circle(
-                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)* *y) as i32,
-                    (DRAW_SCALE as f32)*0.2,
-                    Color::from_hex("3cbd00").unwrap()
-                );
-            }
             // Draw the end points & zones
             for (x,y) in (&self.end_positions).iter().flatten() {
-                rl_handle.draw_circle(
-                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)* *y) as i32,
-                    (DRAW_SCALE as f32)*0.2,
-                    Color::from_hex("005de9").unwrap()
+                rl_handle.draw_ellipse(
+                    offset.0 + ((draw_scale as f64) * *x) as i32,
+                    offset.1 + ((draw_scale as f64)* *y) as i32,
+                    (draw_scale as f32)*0.2,
+                    (draw_scale as f32)*0.2,
+                    Color::from_hex(END_COLOUR).unwrap()
                 );
-                rl_handle.draw_circle(
-                    offset.0 + ((DRAW_SCALE as f64) * *x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64) * *y) as i32,
-                    (DRAW_SCALE as f32) * (TARGET_LOCATION_RADIUS as f32),
-                    Color::fade(&Color::from_hex("005de9").unwrap(), 0.2)
+                rl_handle.draw_ellipse(
+                    offset.0 + ((draw_scale as f64) * *x) as i32,
+                    offset.1 + ((draw_scale as f64) * *y) as i32,
+                    (draw_scale as f32) * (TARGET_LOCATION_RADIUS as f32),
+                    (draw_scale as f32) * (TARGET_LOCATION_RADIUS as f32),
+                    Color::fade(&Color::from_hex(END_ZONE_COLOUR).unwrap(), 0.2)
+                );
+            }
+            // Draw the start points
+            for (x,y) in (&self.start_positions).iter().flatten() {
+                rl_handle.draw_ellipse(
+                    offset.0 + ((draw_scale as f64) * *x) as i32,
+                    offset.1 + ((draw_scale as f64)* *y) as i32,
+                    (draw_scale as f32)*0.2,
+                    (draw_scale as f32)*0.2,
+                    Color::from_hex(START_COLOUR).unwrap()
                 );
             }
             
             // Draw the timing boundaries
             for wall in &self.timing_boundaries {
-                wall.draw(rl_handle, offset, Color::from_hex("008080").unwrap());
+                wall.draw(rl_handle, offset, draw_scale, Color::from_hex(TIMING_BOUND_COLOUR).unwrap());
             }
             
         }
@@ -332,13 +338,13 @@ pub mod simulator {
         }
         
         /// Draw this wall with RayLib
-        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), color: impl Into<raylib::ffi::Color>) {
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), draw_scale: i32, color: impl Into<raylib::ffi::Color>) {
             
             rl_handle.draw_line(
-                offset.0 + ((DRAW_SCALE as f64)*self.x1) as i32,
-                offset.1 + ((DRAW_SCALE as f64)*self.y1) as i32,
-                offset.0 + ((DRAW_SCALE as f64)*self.x2) as i32,
-                offset.1 + ((DRAW_SCALE as f64)*self.y2) as i32,
+                offset.0 + ((draw_scale as f64)*self.x1) as i32,
+                offset.1 + ((draw_scale as f64)*self.y1) as i32,
+                offset.0 + ((draw_scale as f64)*self.x2) as i32,
+                offset.1 + ((draw_scale as f64)*self.y2) as i32,
                 color
             );
             

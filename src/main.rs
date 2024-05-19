@@ -16,7 +16,7 @@ use simulation::pedestrian::pedestrian::Etiquette;
 
 
 /// Speed multiplier if rendering the simulation
-const SIM_SPEED: f64 = 2.0;
+const SIM_SPEED: f64 = 1.0;
 
 /// Run & display the simulation in real time (true), or run the entire simulation immediately & return the results (false)
 const RENDER: bool = true;
@@ -48,6 +48,9 @@ const TIME_SCALE: f64 = 0.02;
 /// The number of pedestrians to exclude from the temporal extremes of the results (the start & end).
 /// The pedestrians at the very beginning and end of the simulation will interact with fewer pedestrians, so their results are not useful.
 const TRIMMED_PEDESTRIANS: usize = 20;
+
+/// How many pixels in a metre
+pub const DRAW_SCALE: i32 = 40;
 
 /// Create a simulation for callibration purposes
 fn create_calibration_sim() -> CrowdSim {
@@ -245,7 +248,7 @@ fn main() {
     let (mut rl, thread) = raylib::init()
         .size(1500, 500)
         .resizable() // If the window is not resizable it will float by default
-        .title("Hello, World")
+        .title("Pedestrian Simulator")
         .vsync() // Ensure that the window has vsync enabled (unless overridden by system)
         .msaa_4x()
         .build();
@@ -265,7 +268,7 @@ fn main() {
         
         // Simulate one timestep & draw the simulation
         crowd_simulation.simulate_timestep(SIM_SPEED * frame_time.as_secs_f64());
-        crowd_simulation.draw(&mut rl_handle, (100,150));
+        crowd_simulation.draw(&mut rl_handle, (100,150), DRAW_SCALE);
         
         // Debug text
         rl_handle.draw_text("Pedestrian Behaviour Simulator", 12, 12, 20, Color::BLACK);

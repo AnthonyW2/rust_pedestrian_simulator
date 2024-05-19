@@ -5,7 +5,7 @@ pub mod pedestrian {
     use raylib::{drawing::{RaylibDrawHandle, RaylibDraw}, color::Color, math::Vector2};
     use rand;
     
-    use crate::simulation::simulator::simulator::{SimArea, DRAW_SCALE};
+    use crate::simulation::simulator::simulator::SimArea;
     
     
     /// The acceleration of a pedestrian, in m⋅s^-2
@@ -64,6 +64,12 @@ pub mod pedestrian {
     
     /// Whether or not to draw extra zones or lines tied to pedestrians
     const DRAW_EXTRA_PEDESTRIAN_INFO: bool = true;
+    
+    
+    const PEDESTRIAN_COLOUR: &str = "505050";
+    const PEDESTRIAN_ZONE_COLOUR: &str = "7D7D7D";
+    const FACING_LINE_COLOUR: &str = "920B07";
+    const TARGET_LINE_COLOUR: &str = "2D8183";
     
     
     // Etiquette option enum
@@ -471,75 +477,76 @@ pub mod pedestrian {
         }
         
         /// Draw this pedestrian with RayLib
-        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32)) {
+        pub fn draw(&self, rl_handle: &mut RaylibDrawHandle, offset: (i32, i32), draw_scale: i32) {
             
             if DRAW_EXTRA_PEDESTRIAN_INFO {
                 // Look-ahead zone
                 rl_handle.draw_circle_sector(
-                    Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
-                    (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_AHEAD_RADIUS as f32),
+                    Vector2::new(offset.0 as f32 + (draw_scale as f32)*(self.x as f32), offset.1 as f32 + (draw_scale as f32)*(self.y as f32)),
+                    (draw_scale as f32) * (PEDESTRIAN_LOOK_AHEAD_RADIUS as f32),
                     ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                     ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                     10,
-                    Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+                    Color::fade(&Color::from_hex(PEDESTRIAN_ZONE_COLOUR).unwrap(), 0.2)
                 );
                 
                 // Look-beside zone
                 rl_handle.draw_circle_sector(
-                    Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
-                    (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
+                    Vector2::new(offset.0 as f32 + (draw_scale as f32)*(self.x as f32), offset.1 as f32 + (draw_scale as f32)*(self.y as f32)),
+                    (draw_scale as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
                     ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0 + PEDESTRIAN_LOOK_BESIDE_FOV)/TAU*360.0) as f32,
                     ((PI/2.0 - self.facing_direction + PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                     10,
-                    Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+                    Color::fade(&Color::from_hex(PEDESTRIAN_ZONE_COLOUR).unwrap(), 0.2)
                 );
                 rl_handle.draw_circle_sector(
-                    Vector2::new(offset.0 as f32 + (DRAW_SCALE as f32)*(self.x as f32), offset.1 as f32 + (DRAW_SCALE as f32)*(self.y as f32)),
-                    (DRAW_SCALE as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
+                    Vector2::new(offset.0 as f32 + (draw_scale as f32)*(self.x as f32), offset.1 as f32 + (draw_scale as f32)*(self.y as f32)),
+                    (draw_scale as f32) * (PEDESTRIAN_LOOK_BESIDE_RADIUS as f32),
                     ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0)/TAU*360.0) as f32,
                     ((PI/2.0 - self.facing_direction - PEDESTRIAN_LOOK_AHEAD_FOV/2.0 - PEDESTRIAN_LOOK_BESIDE_FOV)/TAU*360.0) as f32,
                     10,
-                    Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+                    Color::fade(&Color::from_hex(PEDESTRIAN_ZONE_COLOUR).unwrap(), 0.2)
                 );
                 
                 // Personal space
                 rl_handle.draw_circle(
-                    offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
-                    (DRAW_SCALE as f32) * (PEDESTRIAN_PSPACE_RADIUS as f32),
-                    Color::fade(&Color::from_hex("808080").unwrap(), 0.2)
+                    offset.0 + ((draw_scale as f64)*self.x) as i32,
+                    offset.1 + ((draw_scale as f64)*self.y) as i32,
+                    (draw_scale as f32) * (PEDESTRIAN_PSPACE_RADIUS as f32),
+                    Color::fade(&Color::from_hex(PEDESTRIAN_ZONE_COLOUR).unwrap(), 0.2)
                 );
             }
             
             // Collision hitbox
-            rl_handle.draw_circle(
-                offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
-                offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
-                (DRAW_SCALE as f32) * (PEDESTRIAN_RADIUS as f32),
-                Color::from_hex("505050").unwrap()
+            rl_handle.draw_ellipse(
+                offset.0 + ((draw_scale as f64)*self.x) as i32,
+                offset.1 + ((draw_scale as f64)*self.y) as i32,
+                (draw_scale as f32) * (PEDESTRIAN_RADIUS as f32),
+                (draw_scale as f32) * (PEDESTRIAN_RADIUS as f32),
+                Color::from_hex(PEDESTRIAN_COLOUR).unwrap()
             );
             
             if DRAW_EXTRA_PEDESTRIAN_INFO {
-                // Direction of travel
-                rl_handle.draw_line(
-                    offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
-                    offset.0 + ((DRAW_SCALE as f64)*(self.x + self.inst_speed * self.facing_direction.cos())) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)*(self.y + self.inst_speed * self.facing_direction.sin())) as i32,
-                    Color::from_hex("FF0000").unwrap()
-                );
-                
                 let target_x = self.environment.end_positions[self.group][self.target_location].0;
                 let target_y = self.environment.end_positions[self.group][self.target_location].1;
                 let target_angle = ((target_y - self.y).atan2(target_x - self.x) + TAU) % TAU;
                 
                 // Direction of destination
                 rl_handle.draw_line(
-                    offset.0 + ((DRAW_SCALE as f64)*self.x) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)*self.y) as i32,
-                    offset.0 + ((DRAW_SCALE as f64)*(self.x + target_angle.cos())) as i32,
-                    offset.1 + ((DRAW_SCALE as f64)*(self.y + target_angle.sin())) as i32,
-                    Color::from_hex("FF8000").unwrap()
+                    offset.0 + ((draw_scale as f64)*self.x) as i32,
+                    offset.1 + ((draw_scale as f64)*self.y) as i32,
+                    offset.0 + ((draw_scale as f64)*(self.x + target_angle.cos())) as i32,
+                    offset.1 + ((draw_scale as f64)*(self.y + target_angle.sin())) as i32,
+                    Color::from_hex(TARGET_LINE_COLOUR).unwrap()
+                );
+                
+                // Direction of travel
+                rl_handle.draw_line(
+                    offset.0 + ((draw_scale as f64)*self.x) as i32,
+                    offset.1 + ((draw_scale as f64)*self.y) as i32,
+                    offset.0 + ((draw_scale as f64)*(self.x + self.inst_speed * self.facing_direction.cos())) as i32,
+                    offset.1 + ((draw_scale as f64)*(self.y + self.inst_speed * self.facing_direction.sin())) as i32,
+                    Color::from_hex(FACING_LINE_COLOUR).unwrap()
                 );
             }
             
